@@ -1,0 +1,44 @@
+// Set background color to pure black
+Window.SetBackgroundTopColor(0.0, 0.0, 0.0);
+Window.SetBackgroundBottomColor(0.0, 0.0, 0.0);
+
+// Load the logo image
+logo_image = Image("logo.png");
+
+// Calculate center coordinates
+logo_sprite = Sprite(logo_image);
+logo_width = logo_image.GetWidth();
+logo_height = logo_image.GetHeight();
+
+screen_width = Window.GetWidth();
+screen_height = Window.GetHeight();
+
+logo_x = (screen_width - logo_width) / 2;
+logo_y = (screen_height - logo_height) / 2;
+
+logo_sprite.SetX(logo_x);
+logo_sprite.SetY(logo_y);
+logo_sprite.SetOpacity(0.0); // Start transparent
+
+// Simple fade-in animation
+opacity = 0.0;
+fun refresh_callback() {
+    if (opacity < 1.0) {
+        opacity += 0.05;
+        if (opacity > 1.0) opacity = 1.0;
+        logo_sprite.SetOpacity(opacity);
+    }
+}
+Plymouth.SetRefreshFunction(refresh_callback);
+
+// Display progress (Minimalist - no progress bar for premium look)
+fun boot_progress_callback(duration, progress) {
+    // We keep it clean and minimal
+}
+Plymouth.SetBootProgressFunction(boot_progress_callback);
+
+// Hide splash on quit
+fun quit_callback() {
+    logo_sprite.SetOpacity(0.0);
+}
+Plymouth.SetQuitFunction(quit_callback);

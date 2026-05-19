@@ -1,0 +1,8 @@
+[Plymouth Theme]
+Name=CoraOS Boot Splash
+Description=Futuristic boot splash logo theme for CoraOS Linux
+ModuleName=script
+
+[script]
+ImageDir=/usr/share/plymouth/themes/coraos
+ScriptFile=/usr/share/plymouth/themes/coraos/coraos.script

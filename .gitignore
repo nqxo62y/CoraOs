@@ -1,0 +1,15 @@
+# Rust build targets
+cora-welcome/target/
+cora-welcome/Cargo.lock
+
+# Operating System build outputs
+/chroot/
+/image/
+/coraos.iso
+/logo/logo.png
+
+# OS metadata & local editor settings
+.vscode/
+.idea/
+*.swp
+*.log
