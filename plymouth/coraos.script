@@ -18,9 +18,11 @@ logo_sprite.SetOpacity(1.0);
 
 dot_image = Image("dot.png");
 dot_count = 5;
-for (i = 0; i < dot_count; i++) {
+i = 0;
+while (i < dot_count) {
     dot_sprites[i] = Sprite(dot_image);
     dot_sprites[i].SetOpacity(0.0);
+    i++;
 }
 
 center_x = screen_width / 2;
@@ -31,7 +33,8 @@ time = 0.0;
 
 fun refresh_callback() {
     time += 0.05;
-    for (i = 0; i < dot_count; i++) {
+    i = 0;
+    while (i < dot_count) {
         offset = i * 0.18;
         local_time = time - offset;
         
@@ -46,6 +49,7 @@ fun refresh_callback() {
         if (time > offset) {
             dot_sprites[i].SetOpacity(1.0);
         }
+        i++;
     }
 }
 Plymouth.SetRefreshFunction(refresh_callback);
@@ -56,8 +60,10 @@ Plymouth.SetBootProgressFunction(boot_progress_callback);
 
 fun quit_callback() {
     logo_sprite.SetOpacity(0.0);
-    for (i = 0; i < dot_count; i++) {
+    i = 0;
+    while (i < dot_count) {
         dot_sprites[i].SetOpacity(0.0);
+        i++;
     }
 }
 Plymouth.SetQuitFunction(quit_callback);

@@ -116,10 +116,11 @@ fn interactive_menu(sys: &mut System) {
         println!("  [2] Configure Network Interface (nmtui)");
         println!("  [3] Install/Update System Packages");
         println!("  [4] Launch Interactive Bash Shell");
-        println!("  [5] System Power Options");
-        println!("  [6] Log Out / Exit");
+        println!("  [5] Launch New Terminal Window");
+        println!("  [6] System Power Options");
+        println!("  [7] Exit to i3 Desktop");
         println!();
-        print!("  Enter your choice [1-6]: ");
+        print!("  Enter your choice [1-7]: ");
         let _ = io::stdout().flush();
 
         let mut choice = String::new();
@@ -162,6 +163,9 @@ fn interactive_menu(sys: &mut System) {
                 let _ = Command::new("bash").status();
             }
             "5" => {
+                let _ = Command::new("xterm").spawn();
+            }
+            "6" => {
                 loop {
                     clear_screen();
                     print_logo();
@@ -194,9 +198,9 @@ fn interactive_menu(sys: &mut System) {
                     }
                 }
             }
-            "6" => {
+            "7" => {
                 clear_screen();
-                println!("Goodbye from CoraOS!");
+                println!("Exiting to i3 desktop! Have a great time with CoraOS!");
                 break;
             }
             _ => {}

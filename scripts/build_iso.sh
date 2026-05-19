@@ -131,13 +131,13 @@ ExecStart=
 ExecStart=-/sbin/agetty --autologin cora --noclear %I $TERM
 GETTY_EOF
 
-cat << 'BASHRC_EOF' >> /home/cora/.bashrc
+cat << 'BASH_PROFILE_EOF' >> /home/cora/.bash_profile
 
-if [ -z "$DISPLAY" ] && [ "$XDG_VTNR" = 1 ]; then
-    exec startx
+if [ -z "$DISPLAY" ] && [ "$(tty)" = "/dev/tty1" ]; then
+    startx
 fi
-BASHRC_EOF
-chown cora:cora /home/cora/.bashrc
+BASH_PROFILE_EOF
+chown cora:cora /home/cora/.bash_profile
 
 cat << 'XINITRC_EOF' > /home/cora/.xinitrc
 #!/bin/bash
@@ -165,8 +165,8 @@ bindsym $mod+Shift+q kill
 # dmenu launcher
 bindsym $mod+d exec dmenu_run
 
-# start cora-welcome automatically and float it centered
-exec --no-startup-id /usr/local/bin/cora-welcome
+# start cora-welcome automatically inside a terminal
+exec --no-startup-id xterm -e /usr/local/bin/cora-welcome
 for_window [class=".*"] floating enable
 for_window [class=".*"] border normal 2
 
