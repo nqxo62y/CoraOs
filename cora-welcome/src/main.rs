@@ -55,9 +55,9 @@ fn get_uptime_string(seconds: u64) -> String {
 fn display_dashboard(sys: &mut System) {
     sys.refresh_all();
 
-    let os_name = sys.name().unwrap_or_else(|| "CoraOS".to_string());
-    let kernel_ver = sys.kernel_version().unwrap_or_else(|| "Unknown".to_string());
-    let host_name = sys.host_name().unwrap_or_else(|| "coraos".to_string());
+    let os_name = System::name().unwrap_or_else(|| "CoraOS".to_string());
+    let kernel_ver = System::kernel_version().unwrap_or_else(|| "Unknown".to_string());
+    let host_name = System::host_name().unwrap_or_else(|| "coraos".to_string());
     let uptime = System::uptime();
     
     let total_mem = sys.total_memory() / 1024 / 1024; // MB
