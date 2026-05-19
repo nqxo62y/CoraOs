@@ -2,7 +2,6 @@ Window.SetBackgroundTopColor(0.0, 0.0, 0.0);
 Window.SetBackgroundBottomColor(0.0, 0.0, 0.0);
 
 logo_image = Image("logo.png");
-
 logo_sprite = Sprite(logo_image);
 logo_width = logo_image.GetWidth();
 logo_height = logo_image.GetHeight();
@@ -11,18 +10,42 @@ screen_width = Window.GetWidth();
 screen_height = Window.GetHeight();
 
 logo_x = (screen_width - logo_width) / 2;
-logo_y = (screen_height - logo_height) / 2;
+logo_y = (screen_height - logo_height) / 2 - 50;
 
 logo_sprite.SetX(logo_x);
 logo_sprite.SetY(logo_y);
-logo_sprite.SetOpacity(0.0);
+logo_sprite.SetOpacity(1.0);
 
-opacity = 0.0;
+dot_image = Image("dot.png");
+dot_count = 5;
+for (i = 0; i < dot_count; i++) {
+    dot_sprites[i] = Sprite(dot_image);
+    dot_sprites[i].SetOpacity(0.0);
+}
+
+center_x = screen_width / 2;
+center_y = screen_height / 2 + 80;
+radius = 24;
+
+time = 0.0;
+
 fun refresh_callback() {
-    if (opacity < 1.0) {
-        opacity += 0.05;
-        if (opacity > 1.0) opacity = 1.0;
-        logo_sprite.SetOpacity(opacity);
+    time += 0.05;
+    for (i = 0; i < dot_count; i++) {
+        offset = i * 0.18;
+        local_time = time - offset;
+        
+        angle = local_time + Math.Sin(local_time) * 0.8;
+        
+        x = center_x + Math.Sin(angle) * radius - dot_image.GetWidth() / 2;
+        y = center_y - Math.Cos(angle) * radius - dot_image.GetHeight() / 2;
+        
+        dot_sprites[i].SetX(x);
+        dot_sprites[i].SetY(y);
+        
+        if (time > offset) {
+            dot_sprites[i].SetOpacity(1.0);
+        }
     }
 }
 Plymouth.SetRefreshFunction(refresh_callback);
@@ -33,5 +56,8 @@ Plymouth.SetBootProgressFunction(boot_progress_callback);
 
 fun quit_callback() {
     logo_sprite.SetOpacity(0.0);
+    for (i = 0; i < dot_count; i++) {
+        dot_sprites[i].SetOpacity(0.0);
+    }
 }
 Plymouth.SetQuitFunction(quit_callback);

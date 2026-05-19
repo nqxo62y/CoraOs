@@ -32,7 +32,8 @@ apt-get install -y debootstrap squashfs-tools xorriso grub-pc-bin grub-efi-amd64
 INFO "Processing custom boot logo..."
 if [ -f "logo/logo.ico" ]; then
   python3 -c "from PIL import Image; Image.open('logo/logo.ico').save('logo/logo.png')"
-  SUCCESS "Converted logo/logo.ico to logo/logo.png."
+  python3 -c "from PIL import Image, ImageDraw; img = Image.new('RGBA', (12, 12), (0,0,0,0)); draw = ImageDraw.Draw(img); draw.ellipse((0, 0, 12, 12), fill='white'); img.save('plymouth/dot.png')"
+  SUCCESS "Converted logo/logo.ico to logo/logo.png and generated plymouth/dot.png."
 else
   ERROR "Could not find logo/logo.ico inside the logo directory!"
 fi
@@ -68,6 +69,7 @@ chmod +x "${CHROOT_DIR}/usr/local/bin/cora-welcome"
 PLYMOUTH_THEME_DIR="${CHROOT_DIR}/usr/share/plymouth/themes/coraos"
 mkdir -p "${PLYMOUTH_THEME_DIR}"
 cp logo/logo.png "${PLYMOUTH_THEME_DIR}/logo.png"
+cp plymouth/dot.png "${PLYMOUTH_THEME_DIR}/dot.png"
 cp plymouth/coraos.plymouth "${PLYMOUTH_THEME_DIR}/coraos.plymouth"
 cp plymouth/coraos.script "${PLYMOUTH_THEME_DIR}/coraos.script"
 
@@ -106,7 +108,14 @@ apt-get install -y --no-install-recommends \
   coreutils \
   util-linux \
   console-setup \
-  dbus
+  dbus \
+  xserver-xorg-core \
+  xserver-xorg \
+  xinit \
+  xterm \
+  i3-wm \
+  i3status \
+  dmenu
 
 systemctl enable NetworkManager
 
@@ -124,12 +133,50 @@ GETTY_EOF
 
 cat << 'BASHRC_EOF' >> /home/cora/.bashrc
 
-if [ -f /usr/local/bin/cora-welcome ]; then
-    /usr/local/bin/cora-welcome
-    exit
+if [ -z "$DISPLAY" ] && [ "$XDG_VTNR" = 1 ]; then
+    exec startx
 fi
 BASHRC_EOF
 chown cora:cora /home/cora/.bashrc
+
+cat << 'XINITRC_EOF' > /home/cora/.xinitrc
+#!/bin/bash
+exec i3
+XINITRC_EOF
+chown cora:cora /home/cora/.xinitrc
+chmod +x /home/cora/.xinitrc
+
+mkdir -p /home/cora/.config/i3
+cat << 'I3_EOF' > /home/cora/.config/i3/config
+# CoraOS Simple i3 Config
+set $mod Mod4
+
+font pango:monospace 10
+
+# Floating windows
+floating_modifier $mod
+
+# terminal
+bindsym $mod+Return exec xterm
+
+# kill focused window
+bindsym $mod+Shift+q kill
+
+# dmenu launcher
+bindsym $mod+d exec dmenu_run
+
+# start cora-welcome automatically and float it centered
+exec --no-startup-id /usr/local/bin/cora-welcome
+for_window [class=".*"] floating enable
+for_window [class=".*"] border normal 2
+
+# Status bar
+bar {
+    status_command i3status
+    position bottom
+}
+I3_EOF
+chown -R cora:cora /home/cora/.config
 
 INFO_GUEST() { echo -e "\e[1;35m[CHROOT]\e[0m $1"; }
 INFO_GUEST "Configuring custom boot splash logo..."
