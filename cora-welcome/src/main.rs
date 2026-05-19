@@ -16,7 +16,6 @@ fn print_logo() {
 \____/\____/_/   \__,_/  \____//____/  
 "#;
 
-    // Print with a beautiful horizontal purple-to-cyan gradient
     let purple = "\x1b[38;2;168;85;247m";
     let cyan = "\x1b[38;2;6;182;212m";
     let reset = "\x1b[0m";
@@ -26,7 +25,6 @@ fn print_logo() {
         if line.trim().is_empty() {
             continue;
         }
-        // Shift colors across lines
         if i % 2 == 0 {
             println!("{}{}{}", purple, line, reset);
         } else {
@@ -60,8 +58,8 @@ fn display_dashboard(sys: &mut System) {
     let host_name = System::host_name().unwrap_or_else(|| "coraos".to_string());
     let uptime = System::uptime();
     
-    let total_mem = sys.total_memory() / 1024 / 1024; // MB
-    let used_mem = sys.used_memory() / 1024 / 1024; // MB
+    let total_mem = sys.total_memory() / 1024 / 1024;
+    let used_mem = sys.used_memory() / 1024 / 1024;
     let mem_percentage = if total_mem > 0 { (used_mem * 100) / total_mem } else { 0 };
 
     let cpus = sys.cpus();
@@ -152,7 +150,6 @@ fn interactive_menu(sys: &mut System) {
                 let _ = io::stdin().read_line(&mut temp);
             }
             "2" => {
-                // nmtui is standard text-user-interface for NetworkManager in Debian
                 run_command("nmtui", &[]);
             }
             "3" => {
