@@ -14,10 +14,10 @@ jobs:
 
     steps:
       - name: Checkout Repository
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
 
       - name: Cache Cargo Dependencies
-        uses: actions/cache@v3
+        uses: actions/cache@v4
         with:
           path: |
             ~/.cargo/registry
@@ -40,9 +40,10 @@ jobs:
           sudo ./scripts/build_iso.sh
 
       - name: Upload CoraOS ISO Artifact
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v4
         with:
           name: coraos-live-iso
           path: coraos.iso
           if-no-files-found: error
           retention-days: 7
+
