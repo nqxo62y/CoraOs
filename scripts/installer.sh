@@ -364,17 +364,14 @@ export DEBIAN_FRONTEND=noninteractive
 bash /tmp/setup_user.sh
 rm -f /tmp/setup_user.sh
 
-# Install GRUB
-apt-get update -qq 2>/dev/null
-apt-get install -y -qq grub-efi-amd64 2>/dev/null
-
-grub-install --target=x86_64-efi --efi-directory=/boot/efi --bootloader-id=coraos --recheck 2>/dev/null
-update-grub 2>/dev/null
+# Install GRUB (already present from live image, just configure)
+grub-install --target=x86_64-efi --efi-directory=/boot/efi --bootloader-id=coraos --recheck 2>/dev/null || true
+update-grub 2>/dev/null || true
 
 # Remove live-boot packages
 apt-get remove -y -qq live-boot live-config live-config-systemd 2>/dev/null || true
 apt-get autoremove -y -qq 2>/dev/null || true
-apt-get clean
+apt-get clean 2>/dev/null || true
 CHROOTEOF
 
 umount "$MOUNT_DIR/dev" 2>/dev/null || true

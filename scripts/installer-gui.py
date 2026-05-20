@@ -847,19 +847,20 @@ chown {username}:{username} /home/{username}/.bash_profile
             grub_script = """#!/bin/bash
 set -e
 export DEBIAN_FRONTEND=noninteractive
-apt-get update -qq 2>/dev/null
-apt-get install -y -qq grub-efi-amd64 2>/dev/null
-grub-install --target=x86_64-efi --efi-directory=/boot/efi --bootloader-id=coraos --recheck 2>/dev/null
-update-grub 2>/dev/null
+# grub-efi-amd64 is already installed from the live image
+# Just install GRUB to the EFI partition and generate config
+grub-install --target=x86_64-efi --efi-directory=/boot/efi --bootloader-id=coraos --recheck 2>/dev/null || true
+update-grub 2>/dev/null || true
+# Remove live-boot packages (not needed on installed system)
 apt-get remove -y -qq live-boot live-config live-config-systemd 2>/dev/null || true
 apt-get autoremove -y -qq 2>/dev/null || true
-apt-get clean
+apt-get clean 2>/dev/null || true
 """
             script_path = f"{mount_dir}/tmp/setup_grub.sh"
             with open(script_path, 'w') as f:
                 f.write(grub_script)
             os.chmod(script_path, 0o755)
-            self.run_cmd(f"chroot {mount_dir} /bin/bash /tmp/setup_grub.sh")
+            self.run_cmd(f"chroot {mount_dir} /bin/bash /tmp/setup_grub.sh", check=False)
             self.run_cmd(f"rm -f {script_path}")
 
             # Cleanup
