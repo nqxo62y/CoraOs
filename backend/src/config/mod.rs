@@ -25,6 +25,8 @@ pub struct AppConfig {
     pub backup_path: String,
     /// Path to store log files
     pub log_path: String,
+    /// Path to the frontend static files directory
+    pub frontend_path: String,
 }
 
 impl AppConfig {
@@ -48,6 +50,8 @@ impl AppConfig {
                 .unwrap_or_else(|_| "../backups".to_string()),
             log_path: std::env::var("LOG_PATH")
                 .unwrap_or_else(|_| "../logs".to_string()),
+            frontend_path: std::env::var("FRONTEND_PATH")
+                .unwrap_or_else(|_| "../frontend/dist".to_string()),
         };
 
         Ok(config)

@@ -1,4 +1,11 @@
 #!/bin/bash
+#
+# CoraOS ISO Build Script
+# Builds a bootable Debian live ISO containing:
+#   - cora-welcome console utility
+#   - coraos-backend web management platform
+#   - frontend dashboard (served by backend)
+#
 
 set -e
 
@@ -17,55 +24,104 @@ ISO_NAME="coraos.iso"
 
 cleanup() {
   INFO "Cleaning up temporary mounts..."
-  if mountpoint -q "${CHROOT_DIR}/proc"; then umount -lf "${CHROOT_DIR}/proc"; fi
-  if mountpoint -q "${CHROOT_DIR}/sys"; then umount -lf "${CHROOT_DIR}/sys"; fi
-  if mountpoint -q "${CHROOT_DIR}/dev/pts"; then umount -lf "${CHROOT_DIR}/dev/pts"; fi
-  if mountpoint -q "${CHROOT_DIR}/dev"; then umount -lf "${CHROOT_DIR}/dev"; fi
+  if mountpoint -q "${CHROOT_DIR}/proc" 2>/dev/null; then umount -lf "${CHROOT_DIR}/proc"; fi
+  if mountpoint -q "${CHROOT_DIR}/sys" 2>/dev/null; then umount -lf "${CHROOT_DIR}/sys"; fi
+  if mountpoint -q "${CHROOT_DIR}/dev/pts" 2>/dev/null; then umount -lf "${CHROOT_DIR}/dev/pts"; fi
+  if mountpoint -q "${CHROOT_DIR}/dev" 2>/dev/null; then umount -lf "${CHROOT_DIR}/dev"; fi
   SUCCESS "Cleanup finished."
 }
 trap cleanup EXIT
 
+# ============================================================
+# Host dependencies
+# ============================================================
 INFO "Installing required build dependencies on host..."
 apt-get update
-apt-get install -y debootstrap squashfs-tools xorriso grub-pc-bin grub-efi-amd64-bin mtools python3-pillow python3-pip
+apt-get install -y debootstrap squashfs-tools xorriso grub-pc-bin grub-efi-amd64-bin mtools python3-pillow
 
+# ============================================================
+# Boot logo
+# ============================================================
 INFO "Processing custom boot logo..."
 if [ -f "logo/logo.ico" ]; then
   python3 -c "from PIL import Image; Image.open('logo/logo.ico').save('logo/logo.png')"
   python3 -c "from PIL import Image, ImageDraw; img = Image.new('RGBA', (12, 12), (0,0,0,0)); draw = ImageDraw.Draw(img); draw.ellipse((0, 0, 12, 12), fill='white'); img.save('plymouth/dot.png')"
-  SUCCESS "Converted logo/logo.ico to logo/logo.png and generated plymouth/dot.png."
+  SUCCESS "Logo assets generated."
 else
-  ERROR "Could not find logo/logo.ico inside the logo directory!"
+  ERROR "Could not find logo/logo.ico!"
 fi
 
-INFO "Building custom Rust welcome utility..."
-if [ -d "cora-welcome" ]; then
+# ============================================================
+# Build Rust binaries (if not already built by CI)
+# ============================================================
+if [ ! -f "cora-welcome/target/release/cora-welcome" ]; then
+  INFO "Building cora-welcome..."
   if ! command -v cargo &> /dev/null; then
-    INFO "Cargo not found. Installing Rust toolchain..."
     curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh -s -- -y
     source "$HOME/.cargo/env"
   fi
-  
-  cd cora-welcome
-  cargo build --release
-  cd ..
-  SUCCESS "Rust welcome utility compiled successfully!"
-else
-  ERROR "cora-welcome directory not found!"
+  cd cora-welcome && cargo build --release && cd ..
 fi
 
+if [ ! -f "backend/target/release/coraos-backend" ]; then
+  INFO "Building coraos-backend..."
+  if ! command -v cargo &> /dev/null; then
+    curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh -s -- -y
+    source "$HOME/.cargo/env"
+  fi
+  cd backend && cargo build --release && cd ..
+fi
+
+SUCCESS "All binaries ready."
+
+# ============================================================
+# Bootstrap Debian
+# ============================================================
 INFO "Bootstrapping Debian system (stable/bookworm)..."
 rm -rf "${CHROOT_DIR}" "${IMAGE_DIR}"
 mkdir -p "${CHROOT_DIR}"
 debootstrap --arch=amd64 stable "${CHROOT_DIR}" http://deb.debian.org/debian/
-SUCCESS "Debian base bootstrapped successfully."
+SUCCESS "Debian base bootstrapped."
 
-INFO "Deploying custom system config, theme files, and Rust welcome binary into the chroot..."
+# ============================================================
+# Deploy binaries and assets into chroot
+# ============================================================
+INFO "Deploying CoraOS into chroot..."
 
+# Console welcome utility
 mkdir -p "${CHROOT_DIR}/usr/local/bin"
 cp cora-welcome/target/release/cora-welcome "${CHROOT_DIR}/usr/local/bin/"
 chmod +x "${CHROOT_DIR}/usr/local/bin/cora-welcome"
 
+# Web management backend
+cp backend/target/release/coraos-backend "${CHROOT_DIR}/usr/local/bin/"
+chmod +x "${CHROOT_DIR}/usr/local/bin/coraos-backend"
+
+# Frontend static files
+mkdir -p "${CHROOT_DIR}/opt/coraos/frontend/dist"
+cp -r frontend/dist/* "${CHROOT_DIR}/opt/coraos/frontend/dist/"
+
+# Environment config
+cp .env.example "${CHROOT_DIR}/opt/coraos/.env"
+sed -i 's|../data/coraos.db|/opt/coraos/data/coraos.db|g' "${CHROOT_DIR}/opt/coraos/.env"
+sed -i 's|../backups|/opt/coraos/backups|g' "${CHROOT_DIR}/opt/coraos/.env"
+sed -i 's|../logs|/opt/coraos/logs|g' "${CHROOT_DIR}/opt/coraos/.env"
+sed -i 's|../frontend/dist|/opt/coraos/frontend/dist|g' "${CHROOT_DIR}/opt/coraos/.env"
+
+# Create data directories
+mkdir -p "${CHROOT_DIR}/opt/coraos/data"
+mkdir -p "${CHROOT_DIR}/opt/coraos/backups"
+mkdir -p "${CHROOT_DIR}/opt/coraos/logs"
+
+# systemd service for the web platform
+cp config/coraos.service "${CHROOT_DIR}/etc/systemd/system/coraos.service"
+# Fix paths in service file for this layout
+sed -i 's|/opt/coraos/backend/coraos-backend|/usr/local/bin/coraos-backend|g' "${CHROOT_DIR}/etc/systemd/system/coraos.service"
+sed -i 's|WorkingDirectory=.*|WorkingDirectory=/opt/coraos|g' "${CHROOT_DIR}/etc/systemd/system/coraos.service"
+sed -i 's|EnvironmentFile=.*|EnvironmentFile=/opt/coraos/.env|g' "${CHROOT_DIR}/etc/systemd/system/coraos.service"
+sed -i 's|ReadWritePaths=.*|ReadWritePaths=/opt/coraos/data /opt/coraos/backups /opt/coraos/logs|g' "${CHROOT_DIR}/etc/systemd/system/coraos.service"
+
+# Plymouth boot theme
 PLYMOUTH_THEME_DIR="${CHROOT_DIR}/usr/share/plymouth/themes/coraos"
 mkdir -p "${PLYMOUTH_THEME_DIR}"
 cp logo/logo.png "${PLYMOUTH_THEME_DIR}/logo.png"
@@ -73,6 +129,9 @@ cp plymouth/dot.png "${PLYMOUTH_THEME_DIR}/dot.png"
 cp plymouth/coraos.plymouth "${PLYMOUTH_THEME_DIR}/coraos.plymouth"
 cp plymouth/coraos.script "${PLYMOUTH_THEME_DIR}/coraos.script"
 
+# ============================================================
+# Chroot configuration
+# ============================================================
 INFO "Mounting pseudo-filesystems into chroot..."
 mount --bind /dev "${CHROOT_DIR}/dev"
 mount --bind /dev/pts "${CHROOT_DIR}/dev/pts"
@@ -108,22 +167,23 @@ apt-get install -y --no-install-recommends \
   coreutils \
   util-linux \
   console-setup \
-  dbus \
-  xserver-xorg-core \
-  xserver-xorg \
-  xinit \
-  xterm \
-  i3-wm \
-  i3status \
-  dmenu
+  dbus
 
+# Enable services
 systemctl enable NetworkManager
+systemctl enable coraos.service
 
+# Create system user for the web platform
+useradd --system --no-create-home --shell /usr/sbin/nologin coraos 2>/dev/null || true
+chown -R coraos:coraos /opt/coraos
+
+# Create interactive user
 useradd -m -s /bin/bash cora
 echo "cora:cora" | chpasswd
 usermod -aG sudo cora
 echo "cora ALL=(ALL) NOPASSWD:ALL" >> /etc/sudoers
 
+# Auto-login on tty1 with cora-welcome
 mkdir -p /etc/systemd/system/getty@tty1.service.d
 cat << 'GETTY_EOF' > /etc/systemd/system/getty@tty1.service.d/override.conf
 [Service]
@@ -131,56 +191,18 @@ ExecStart=
 ExecStart=-/sbin/agetty --autologin cora --noclear %I $TERM
 GETTY_EOF
 
-cat << 'BASH_PROFILE_EOF' >> /home/cora/.bash_profile
-
-if [ -z "$DISPLAY" ] && [ "$(tty)" = "/dev/tty1" ]; then
-    startx
-fi
-BASH_PROFILE_EOF
+# Launch cora-welcome on login
+cat << 'PROFILE_EOF' >> /home/cora/.bash_profile
+/usr/local/bin/cora-welcome
+PROFILE_EOF
 chown cora:cora /home/cora/.bash_profile
 
-cat << 'XINITRC_EOF' > /home/cora/.xinitrc
-#!/bin/bash
-exec i3
-XINITRC_EOF
-chown cora:cora /home/cora/.xinitrc
-chmod +x /home/cora/.xinitrc
-
-mkdir -p /home/cora/.config/i3
-cat << 'I3_EOF' > /home/cora/.config/i3/config
-# CoraOS Simple i3 Config
-set $mod Mod4
-
-font pango:monospace 10
-
-# Floating windows
-floating_modifier $mod
-
-# terminal
-bindsym $mod+Return exec xterm
-
-# kill focused window
-bindsym $mod+Shift+q kill
-
-# dmenu launcher
-bindsym $mod+d exec dmenu_run
-
-# start cora-welcome automatically inside a terminal
-exec --no-startup-id xterm -e /usr/local/bin/cora-welcome
-for_window [class=".*"] floating enable
-for_window [class=".*"] border normal 2
-
-# Status bar
-bar {
-    status_command i3status
-    position bottom
-}
-I3_EOF
-chown -R cora:cora /home/cora/.config
-
-INFO_GUEST() { echo -e "\e[1;35m[CHROOT]\e[0m $1"; }
-INFO_GUEST "Configuring custom boot splash logo..."
+# Plymouth boot theme
 plymouth-set-default-theme -R coraos
+
+# Generate JWT secret
+JWT_SECRET=$(head -c 64 /dev/urandom | od -An -tx1 | tr -d ' \n')
+sed -i "s/change_this_to_a_random_64_char_hex_string/${JWT_SECRET}/" /opt/coraos/.env
 
 apt-get clean
 rm -rf /var/lib/apt/lists/*
@@ -193,6 +215,9 @@ SUCCESS "Guest system configuration complete."
 
 cleanup
 
+# ============================================================
+# Build ISO
+# ============================================================
 INFO "Preparing boot files..."
 mkdir -p "${IMAGE_DIR}/live"
 KERNEL_PATH=$(ls -1 "${CHROOT_DIR}/boot/vmlinuz-"* | head -n 1)
@@ -200,9 +225,9 @@ INITRD_PATH=$(ls -1 "${CHROOT_DIR}/boot/initrd.img-"* | head -n 1)
 
 cp "${KERNEL_PATH}" "${IMAGE_DIR}/live/vmlinuz"
 cp "${INITRD_PATH}" "${IMAGE_DIR}/live/initrd.img"
-SUCCESS "Kernel and Initramfs exported to live image folder."
+SUCCESS "Kernel and initramfs exported."
 
-INFO "Creating SquashFS image (this may take a couple of minutes)..."
+INFO "Creating SquashFS image..."
 mksquashfs "${CHROOT_DIR}" "${IMAGE_DIR}/live/filesystem.squashfs" -comp xz -e boot
 SUCCESS "SquashFS root filesystem generated."
 
@@ -221,9 +246,15 @@ menuentry "CoraOS Live (GNU/Linux Debian-based)" {
 EOF
 SUCCESS "GRUB configuration created."
 
-INFO "Compiling the bootable hybrid UEFI/BIOS ISO..."
+INFO "Compiling bootable hybrid UEFI/BIOS ISO..."
 grub-mkrescue -o "${ISO_NAME}" "${IMAGE_DIR}"
 
 SUCCESS "=========================================================="
-SUCCESS " CoraOS ISO generated successfully at: ${WORKDIR}/${ISO_NAME}"
+SUCCESS " CoraOS ISO generated: ${WORKDIR}/${ISO_NAME}"
+SUCCESS " "
+SUCCESS " Includes:"
+SUCCESS "   - Debian Live system"
+SUCCESS "   - CoraOS web management (http://<ip>:8080)"
+SUCCESS "   - Console admin utility (auto-starts on tty1)"
+SUCCESS "   - Custom boot splash"
 SUCCESS "=========================================================="

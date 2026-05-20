@@ -87,7 +87,7 @@ fn build_router(state: Arc<AppState>) -> Router {
 
     Router::new()
         .nest("/api", api_routes)
-        .fallback_service(ServeDir::new("../frontend/dist"))
+        .fallback_service(ServeDir::new(&state.config.frontend_path))
         .layer(TraceLayer::new_for_http())
         .layer(CompressionLayer::new())
         .layer(cors)
