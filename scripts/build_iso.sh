@@ -98,6 +98,191 @@ mkdir -p "${CHROOT}/usr/share/plymouth/themes/coraos"
 cp logo/logo.png plymouth/dot.png plymouth/coraos.plymouth plymouth/coraos.script \
    "${CHROOT}/usr/share/plymouth/themes/coraos/"
 
+# ─── Calamares Configuration ──────────────────────────────────────────────────
+
+INFO "Configuring Calamares installer..."
+
+mkdir -p "${CHROOT}/etc/calamares"
+mkdir -p "${CHROOT}/etc/calamares/modules"
+mkdir -p "${CHROOT}/etc/calamares/branding/coraos"
+
+# Main settings
+cat > "${CHROOT}/etc/calamares/settings.conf" << 'EOF'
+modules-search: [ local, /usr/lib/calamares/modules ]
+
+sequence:
+  - show:
+    - welcome
+    - locale
+    - keyboard
+    - partition
+    - users
+    - summary
+  - exec:
+    - partition
+    - mount
+    - unpackfs
+    - machineid
+    - fstab
+    - locale
+    - keyboard
+    - localecfg
+    - users
+    - networkcfg
+    - hwclock
+    - services-systemd
+    - grubcfg
+    - bootloader
+    - umount
+  - show:
+    - finished
+
+branding: coraos
+prompt-install: true
+dont-chroot: false
+EOF
+
+# Branding
+cat > "${CHROOT}/etc/calamares/branding/coraos/branding.desc" << 'EOF'
+componentName: coraos
+
+strings:
+    productName:         CoraOS
+    shortProductName:    CoraOS
+    version:             1.0
+    shortVersion:        1.0
+    versionedName:       CoraOS 1.0
+    shortVersionedName:  CoraOS 1.0
+    bootloaderEntryName: CoraOS
+    productUrl:          https://github.com/nqxo62y/CoraOs
+    supportUrl:          https://github.com/nqxo62y/CoraOs/issues
+    knownIssuesUrl:      https://github.com/nqxo62y/CoraOs/issues
+
+images:
+    productLogo:         "logo.png"
+    productIcon:         "logo.png"
+
+style:
+    sidebarBackground:   "#0d1117"
+    sidebarText:         "#e6edf3"
+    sidebarTextSelect:   "#4f8cc9"
+
+slideshow: []
+EOF
+
+# Copy logo for branding
+cp logo/logo.png "${CHROOT}/etc/calamares/branding/coraos/logo.png"
+
+# Unpackfs module (tells Calamares where the live filesystem is)
+cat > "${CHROOT}/etc/calamares/modules/unpackfs.conf" << 'EOF'
+unpack:
+  - source: /run/live/medium/live/filesystem.squashfs
+    sourcefs: squashfs
+    destination: ""
+EOF
+
+# Users module
+cat > "${CHROOT}/etc/calamares/modules/users.conf" << 'EOF'
+defaultGroups:
+    - sudo
+    - cdrom
+    - floppy
+    - audio
+    - dip
+    - video
+    - plugdev
+    - netdev
+
+autologinGroup: autologin
+doAutologin: false
+sudoersGroup: sudo
+setRootPassword: true
+doReusePassword: true
+passwordRequirements:
+    minLength: 4
+    maxLength: -1
+EOF
+
+# Finished module
+cat > "${CHROOT}/etc/calamares/modules/finished.conf" << 'EOF'
+restartNowEnabled: true
+restartNowChecked: true
+restartNowCommand: "systemctl reboot"
+EOF
+
+# Bootloader module
+cat > "${CHROOT}/etc/calamares/modules/bootloader.conf" << 'EOF'
+efiBootLoader: "grub"
+kernel: "/vmlinuz"
+img: "/initrd.img"
+kernelLine: ", with Linux %k"
+fallbackKernelLine: ", with Linux %k (fallback initramfs)"
+timeout: 5
+grubInstall: "grub-install"
+grubMkconfig: "update-grub"
+grubCfg: "/boot/grub/grub.cfg"
+efiBootloaderId: "coraos"
+EOF
+
+# Services module (enable CoraOS services after install)
+cat > "${CHROOT}/etc/calamares/modules/services-systemd.conf" << 'EOF'
+services:
+    - name: "NetworkManager"
+      mandatory: true
+    - name: "apache2"
+      mandatory: true
+    - name: "coraos"
+      mandatory: true
+    - name: "coraos-console"
+      mandatory: false
+
+targets:
+    - name: "multi-user"
+      mandatory: true
+EOF
+
+# Welcome module
+cat > "${CHROOT}/etc/calamares/modules/welcome.conf" << 'EOF'
+showSupportUrl: true
+showKnownIssuesUrl: true
+showReleaseNotesUrl: false
+
+requirements:
+    requiredStorage: 4.0
+    requiredRam: 0.5
+    internetCheckUrl: ""
+    check:
+        - storage
+        - ram
+        - root
+EOF
+
+# Partition module
+cat > "${CHROOT}/etc/calamares/modules/partition.conf" << 'EOF'
+efiSystemPartition: "/boot/efi"
+efiSystemPartitionSize: 512M
+userSwapChoices:
+    - none
+    - small
+    - file
+drawNestedPartitions: false
+alwaysShowPartitionLabels: true
+defaultFileSystemType: "ext4"
+EOF
+
+# Desktop entry for launching Calamares
+mkdir -p "${CHROOT}/usr/share/applications"
+cat > "${CHROOT}/usr/share/applications/coraos-installer.desktop" << 'EOF'
+[Desktop Entry]
+Type=Application
+Name=Install CoraOS
+Comment=Install CoraOS to disk
+Exec=sudo calamares
+Icon=/etc/calamares/branding/coraos/logo.png
+Terminal=false
+Categories=System;
+EOF
+
 # ─── Systemd Services ─────────────────────────────────────────────────────────
 
 # Backend API service
