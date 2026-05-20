@@ -1,7 +1,3 @@
-//! WebSocket handler for real-time system metrics streaming.
-//!
-//! Clients connect to /api/ws and receive periodic system metric updates.
-
 use std::sync::Arc;
 use std::time::Duration;
 
@@ -17,7 +13,6 @@ use tracing::{error, info};
 
 use crate::AppState;
 
-/// WebSocket upgrade handler.
 pub async fn ws_handler(
     ws: WebSocketUpgrade,
     State(state): State<Arc<AppState>>,
@@ -25,8 +20,6 @@ pub async fn ws_handler(
     ws.on_upgrade(move |socket| handle_socket(socket, state))
 }
 
-/// Handle an active WebSocket connection.
-/// Sends system metrics every 2 seconds until the client disconnects.
 async fn handle_socket(mut socket: WebSocket, state: Arc<AppState>) {
     info!("WebSocket client connected");
 
@@ -45,7 +38,6 @@ async fn handle_socket(mut socket: WebSocket, state: Arc<AppState>) {
         };
 
         if socket.send(Message::Text(payload)).await.is_err() {
-            // Client disconnected
             info!("WebSocket client disconnected");
             break;
         }

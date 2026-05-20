@@ -1,14 +1,8 @@
-//! Systemd service management.
-//!
-//! Provides start, stop, restart, enable, disable operations and status queries
-//! for systemd units on the host system.
-
 use anyhow::{anyhow, Result};
 use std::process::Command;
 
 use crate::models::system::{ServiceAction, ServiceInfo};
 
-/// List all systemd services with their current status.
 pub fn list_services() -> Result<Vec<ServiceInfo>> {
     let output = Command::new("systemctl")
         .args([
@@ -31,9 +25,7 @@ pub fn list_services() -> Result<Vec<ServiceInfo>> {
     Ok(services)
 }
 
-/// Get detailed status of a specific service.
 pub fn get_service_status(service_name: &str) -> Result<ServiceInfo> {
-    // Validate service name to prevent command injection
     validate_service_name(service_name)?;
 
     let output = Command::new("systemctl")
@@ -67,7 +59,6 @@ pub fn get_service_status(service_name: &str) -> Result<ServiceInfo> {
     Ok(info)
 }
 
-/// Execute an action on a systemd service.
 pub fn execute_service_action(service_name: &str, action: &ServiceAction) -> Result<String> {
     validate_service_name(service_name)?;
 
@@ -93,7 +84,6 @@ pub fn execute_service_action(service_name: &str, action: &ServiceAction) -> Res
     }
 }
 
-/// Parse a single line from systemctl list-units output.
 fn parse_service_line(line: &str) -> Option<ServiceInfo> {
     let parts: Vec<&str> = line.split_whitespace().collect();
     if parts.len() < 4 {
@@ -120,13 +110,11 @@ fn parse_service_line(line: &str) -> Option<ServiceInfo> {
     })
 }
 
-/// Validate that a service name contains only safe characters.
 fn validate_service_name(name: &str) -> Result<()> {
     if name.is_empty() || name.len() > 256 {
         return Err(anyhow!("Invalid service name length"));
     }
 
-    // Allow alphanumeric, hyphens, underscores, dots, and @ (for template units)
     if !name
         .chars()
         .all(|c| c.is_alphanumeric() || c == '-' || c == '_' || c == '.' || c == '@')
@@ -136,7 +124,6 @@ fn validate_service_name(name: &str) -> Result<()> {
         ));
     }
 
-    // Prevent path traversal
     if name.contains("..") {
         return Err(anyhow!("Service name must not contain path traversal"));
     }
@@ -144,7 +131,6 @@ fn validate_service_name(name: &str) -> Result<()> {
     Ok(())
 }
 
-/// Convert a service action to past tense for status messages.
 fn past_tense(action: &ServiceAction) -> &str {
     match action {
         ServiceAction::Start => "started",

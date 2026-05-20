@@ -1,5 +1,3 @@
-//! Backup management route handlers.
-
 use std::sync::Arc;
 
 use axum::{
@@ -14,9 +12,6 @@ use crate::models::backup::CreateBackupRequest;
 use crate::services::{audit, backup as backup_service};
 use crate::AppState;
 
-/// GET /api/backups
-///
-/// List all backups.
 pub async fn list_backups(
     State(state): State<Arc<AppState>>,
 ) -> Result<Json<Value>, (StatusCode, Json<Value>)> {
@@ -30,15 +25,11 @@ pub async fn list_backups(
     Ok(Json(json!({"backups": backups})))
 }
 
-/// POST /api/backups
-///
-/// Create a new backup. Requires operator or admin role.
 pub async fn create_backup(
     State(state): State<Arc<AppState>>,
     axum::Extension(auth_user): axum::Extension<AuthenticatedUser>,
     Json(payload): Json<CreateBackupRequest>,
 ) -> Result<Json<Value>, (StatusCode, Json<Value>)> {
-    // Only operators and admins can create backups
     if auth_user.role == "viewer" {
         return Err((
             StatusCode::FORBIDDEN,
@@ -46,7 +37,6 @@ pub async fn create_backup(
         ));
     }
 
-    // Validate input
     if payload.name.is_empty() {
         return Err((
             StatusCode::BAD_REQUEST,
@@ -76,7 +66,6 @@ pub async fn create_backup(
         )
     })?;
 
-    // Audit log
     let _ = audit::log_action(
         &state.db,
         Some(&auth_user.user_id),
@@ -90,9 +79,6 @@ pub async fn create_backup(
     Ok(Json(json!({"backup": backup})))
 }
 
-/// DELETE /api/backups/:id
-///
-/// Delete a backup. Requires admin role.
 pub async fn delete_backup(
     State(state): State<Arc<AppState>>,
     axum::Extension(auth_user): axum::Extension<AuthenticatedUser>,
@@ -114,7 +100,6 @@ pub async fn delete_backup(
             )
         })?;
 
-    // Audit log
     let _ = audit::log_action(
         &state.db,
         Some(&auth_user.user_id),

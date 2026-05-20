@@ -1,10 +1,5 @@
-//! Logging configuration using the tracing ecosystem.
-//!
-//! Outputs structured logs to both stdout and rotating log files.
-
 use tracing_subscriber::{fmt, layer::SubscriberExt, util::SubscriberInitExt, EnvFilter};
 
-/// Initialize the tracing subscriber with console and file output.
 pub fn init_logging() {
     let env_filter = EnvFilter::try_from_default_env()
         .unwrap_or_else(|_| EnvFilter::new("coraos_backend=info,tower_http=info"));

@@ -1,7 +1,3 @@
-//! CoraOS Backend - Production-grade Debian Linux server management platform
-//!
-//! Entry point that initializes the application, database, and HTTP server.
-
 mod config;
 mod middleware;
 mod models;
@@ -22,7 +18,6 @@ use tracing::info;
 use crate::config::AppConfig;
 use crate::services::monitor::SystemMonitor;
 
-/// Shared application state accessible from all route handlers.
 pub struct AppState {
     pub db: SqlitePool,
     pub config: AppConfig,
@@ -31,39 +26,30 @@ pub struct AppState {
 
 #[tokio::main]
 async fn main() -> anyhow::Result<()> {
-    // Load environment variables from .env if present (optional)
     let _ = dotenvy::dotenv();
 
-    // Initialize logging
     config::logging::init_logging();
 
     info!("CoraOS Server Management Platform starting...");
 
-    // Load configuration
     let config = AppConfig::load()?;
     let bind_addr = config.bind_address();
 
-    // Initialize database
     let db = config::database::init_database(&config.database_url).await?;
     info!("Database initialized successfully");
 
-    // Seed default admin user if no users exist
     services::auth::seed_default_admin(&db).await?;
 
-    // Initialize system monitor
     let monitor = SystemMonitor::new();
 
-    // Build shared state
     let state = Arc::new(AppState {
         db,
         config,
         monitor,
     });
 
-    // Build the application router
     let app = build_router(state.clone());
 
-    // Start the server
     let listener = tokio::net::TcpListener::bind(&bind_addr).await?;
     info!("CoraOS listening on http://{}", bind_addr);
 
@@ -76,7 +62,6 @@ async fn main() -> anyhow::Result<()> {
     Ok(())
 }
 
-/// Constructs the full application router with all routes and middleware.
 fn build_router(state: Arc<AppState>) -> Router {
     let cors = CorsLayer::new()
         .allow_origin(Any)

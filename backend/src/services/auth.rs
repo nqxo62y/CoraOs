@@ -1,5 +1,3 @@
-//! Authentication service handling login, token generation, and password hashing.
-
 use anyhow::Result;
 use argon2::{
     password_hash::{rand_core::OsRng, PasswordHash, PasswordHasher, PasswordVerifier, SaltString},
@@ -14,7 +12,6 @@ use uuid::Uuid;
 use crate::models::auth::Claims;
 use crate::models::user::{User, UserRole};
 
-/// Hash a plaintext password using Argon2id.
 pub fn hash_password(password: &str) -> Result<String> {
     let salt = SaltString::generate(&mut OsRng);
     let argon2 = Argon2::default();
@@ -24,7 +21,6 @@ pub fn hash_password(password: &str) -> Result<String> {
     Ok(hash.to_string())
 }
 
-/// Verify a plaintext password against a stored hash.
 pub fn verify_password(password: &str, hash: &str) -> Result<bool> {
     let parsed_hash =
         PasswordHash::new(hash).map_err(|e| anyhow::anyhow!("Invalid hash format: {}", e))?;
@@ -33,7 +29,6 @@ pub fn verify_password(password: &str, hash: &str) -> Result<bool> {
         .is_ok())
 }
 
-/// Generate a JWT token for an authenticated user.
 pub fn generate_token(
     user_id: &str,
     username: &str,
@@ -61,7 +56,6 @@ pub fn generate_token(
     Ok((token, expires_at.to_rfc3339()))
 }
 
-/// Validate and decode a JWT token, returning the claims if valid.
 pub fn validate_token(token: &str, secret: &str) -> Result<Claims> {
     let token_data = decode::<Claims>(
         token,
@@ -71,7 +65,6 @@ pub fn validate_token(token: &str, secret: &str) -> Result<Claims> {
     Ok(token_data.claims)
 }
 
-/// Authenticate a user by username and password.
 pub async fn authenticate_user(
     pool: &SqlitePool,
     username: &str,
@@ -115,7 +108,6 @@ pub async fn authenticate_user(
     }
 }
 
-/// Create the default admin user if no users exist in the database.
 pub async fn seed_default_admin(pool: &SqlitePool) -> Result<()> {
     let row: (i64,) = sqlx::query_as("SELECT COUNT(*) FROM users")
         .fetch_one(pool)

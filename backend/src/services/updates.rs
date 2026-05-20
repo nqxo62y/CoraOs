@@ -1,13 +1,10 @@
-
 use anyhow::{anyhow, Result};
 use std::process::Command;
 use tracing::info;
 
 use crate::models::system::UpdateInfo;
 
-/// Check for available system updates using apt.
 pub fn check_updates() -> Result<Vec<UpdateInfo>> {
-    // Refresh the package list using sudo (passwordless rule installed at setup)
     let refresh = Command::new("sudo")
         .args(["-n", "apt-get", "update", "-qq"])
         .output()
@@ -18,7 +15,6 @@ pub fn check_updates() -> Result<Vec<UpdateInfo>> {
         return Err(anyhow!("apt-get update failed: {}", stderr.trim()));
     }
 
-    // List upgradable packages (no sudo needed)
     let output = Command::new("apt")
         .args(["list", "--upgradable"])
         .output()
@@ -27,7 +23,7 @@ pub fn check_updates() -> Result<Vec<UpdateInfo>> {
     let stdout = String::from_utf8_lossy(&output.stdout);
     let updates: Vec<UpdateInfo> = stdout
         .lines()
-        .skip(1) // Skip "Listing..." header
+        .skip(1)
         .filter_map(|line| parse_update_line(line))
         .collect();
 
@@ -35,7 +31,6 @@ pub fn check_updates() -> Result<Vec<UpdateInfo>> {
     Ok(updates)
 }
 
-/// Apply all available system updates.
 pub fn apply_updates() -> Result<String> {
     let output = Command::new("sudo")
         .args(["-n", "apt-get", "upgrade", "-y", "-qq"])
@@ -52,10 +47,7 @@ pub fn apply_updates() -> Result<String> {
     }
 }
 
-/// Parse a single line from `apt list --upgradable` output.
-/// Format: package/repository version_new arch [upgradable from: version_old]
 fn parse_update_line(line: &str) -> Option<UpdateInfo> {
-    // Example: "vim/stable 2:9.0.1378-2 amd64 [upgradable from: 2:9.0.1000-1]"
     let parts: Vec<&str> = line.splitn(2, '/').collect();
     if parts.len() < 2 {
         return None;
@@ -72,7 +64,6 @@ fn parse_update_line(line: &str) -> Option<UpdateInfo> {
     let repository = segments[0].to_string();
     let new_version = segments[1].to_string();
 
-    // Extract current version from "[upgradable from: X.Y.Z]"
     let current_version = if let Some(from_idx) = rest.find("from: ") {
         let start = from_idx + 6;
         let end = rest[start..].find(']').map(|i| start + i).unwrap_or(rest.len());

@@ -1,14 +1,9 @@
-//! Audit logging service.
-//!
-//! Records all significant user actions for security and compliance tracking.
-
 use anyhow::Result;
 use sqlx::{Row, SqlitePool};
 use uuid::Uuid;
 
 use crate::models::audit::{AuditLog, AuditLogQuery};
 
-/// Record an audit log entry.
 pub async fn log_action(
     pool: &SqlitePool,
     user_id: Option<&str>,
@@ -35,7 +30,6 @@ pub async fn log_action(
     Ok(())
 }
 
-/// Query audit logs with optional filters and pagination.
 pub async fn query_logs(pool: &SqlitePool, query: &AuditLogQuery) -> Result<Vec<AuditLog>> {
     let page = query.page.unwrap_or(1).max(1);
     let per_page = query.per_page.unwrap_or(50).min(200);
@@ -105,7 +99,6 @@ pub async fn query_logs(pool: &SqlitePool, query: &AuditLogQuery) -> Result<Vec<
     Ok(logs)
 }
 
-/// Get total count of audit logs matching the filter.
 pub async fn count_logs(pool: &SqlitePool, query: &AuditLogQuery) -> Result<i64> {
     let count: (i64,) = match (&query.user_id, &query.action) {
         (Some(user_id), Some(action)) => {

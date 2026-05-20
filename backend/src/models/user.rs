@@ -1,9 +1,6 @@
-//! User model and related types.
-
 use serde::{Deserialize, Serialize};
 use validator::Validate;
 
-/// User roles for access control.
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
 #[serde(rename_all = "lowercase")]
 pub enum UserRole {
@@ -30,7 +27,6 @@ impl UserRole {
         }
     }
 
-    /// Check if this role has at least the given permission level.
     pub fn has_permission(&self, required: &UserRole) -> bool {
         let self_level = self.level();
         let required_level = required.level();
@@ -46,7 +42,6 @@ impl UserRole {
     }
 }
 
-/// Database representation of a user.
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct User {
     pub id: String,
@@ -62,7 +57,6 @@ pub struct User {
     pub last_login: Option<String>,
 }
 
-/// Public user data returned in API responses (no password hash).
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct UserResponse {
     pub id: String,
@@ -90,7 +84,6 @@ impl From<User> for UserResponse {
     }
 }
 
-/// Request body for creating a new user.
 #[derive(Debug, Deserialize, Validate)]
 pub struct CreateUserRequest {
     #[validate(length(min = 3, max = 32, message = "Username must be 3-32 characters"))]
@@ -104,7 +97,6 @@ pub struct CreateUserRequest {
     pub email: Option<String>,
 }
 
-/// Request body for updating a user.
 #[derive(Debug, Deserialize, Validate)]
 pub struct UpdateUserRequest {
     pub role: Option<String>,

@@ -1,5 +1,3 @@
-//! Service management route handlers.
-
 use std::sync::Arc;
 
 use axum::{
@@ -14,9 +12,6 @@ use crate::models::system::{ServiceActionRequest, ServiceInfo};
 use crate::services::{audit, services_manager};
 use crate::AppState;
 
-/// GET /api/services
-///
-/// List all systemd services.
 pub async fn list_services(
     State(_state): State<Arc<AppState>>,
 ) -> Result<Json<Vec<ServiceInfo>>, (StatusCode, Json<Value>)> {
@@ -30,9 +25,6 @@ pub async fn list_services(
         })
 }
 
-/// GET /api/services/:name
-///
-/// Get detailed status of a specific service.
 pub async fn get_service(
     State(_state): State<Arc<AppState>>,
     Path(name): Path<String>,
@@ -47,17 +39,12 @@ pub async fn get_service(
         })
 }
 
-/// POST /api/services/:name/action
-///
-/// Execute an action (start/stop/restart/enable/disable) on a service.
-/// Requires operator or admin role.
 pub async fn service_action(
     State(state): State<Arc<AppState>>,
     axum::Extension(auth_user): axum::Extension<AuthenticatedUser>,
     Path(name): Path<String>,
     Json(payload): Json<ServiceActionRequest>,
 ) -> Result<Json<Value>, (StatusCode, Json<Value>)> {
-    // Check permission - only operators and admins can manage services
     if auth_user.role == "viewer" {
         return Err((
             StatusCode::FORBIDDEN,
@@ -72,7 +59,6 @@ pub async fn service_action(
         )
     })?;
 
-    // Audit log the action
     let _ = audit::log_action(
         &state.db,
         Some(&auth_user.user_id),

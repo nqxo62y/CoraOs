@@ -1,8 +1,5 @@
-//! System monitoring and service management models.
-
 use serde::{Deserialize, Serialize};
 
-/// Real-time system metrics snapshot.
 #[derive(Debug, Clone, Serialize)]
 pub struct SystemMetrics {
     pub cpu_usage_percent: f32,
@@ -22,7 +19,6 @@ pub struct SystemMetrics {
     pub load_average: LoadAverage,
 }
 
-/// Disk partition information.
 #[derive(Debug, Clone, Serialize)]
 pub struct DiskInfo {
     pub mount_point: String,
@@ -33,7 +29,6 @@ pub struct DiskInfo {
     pub usage_percent: f32,
 }
 
-/// Network interface statistics.
 #[derive(Debug, Clone, Serialize)]
 pub struct NetworkInterface {
     pub name: String,
@@ -43,7 +38,6 @@ pub struct NetworkInterface {
     pub transmitted_packets: u64,
 }
 
-/// System load averages.
 #[derive(Debug, Clone, Serialize)]
 pub struct LoadAverage {
     pub one_min: f64,
@@ -51,7 +45,6 @@ pub struct LoadAverage {
     pub fifteen_min: f64,
 }
 
-/// Process information for the process monitor.
 #[derive(Debug, Clone, Serialize)]
 pub struct ProcessInfo {
     pub pid: u32,
@@ -63,7 +56,6 @@ pub struct ProcessInfo {
     pub start_time: u64,
 }
 
-/// Systemd service status.
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct ServiceInfo {
     pub name: String,
@@ -74,7 +66,6 @@ pub struct ServiceInfo {
     pub unit_file_state: String,
 }
 
-/// Request to perform a service action.
 #[derive(Debug, Deserialize)]
 #[allow(dead_code)]
 pub struct ServiceActionRequest {
@@ -82,7 +73,6 @@ pub struct ServiceActionRequest {
     pub action: ServiceAction,
 }
 
-/// Available service actions.
 #[derive(Debug, Deserialize, Serialize, Clone)]
 #[serde(rename_all = "lowercase")]
 pub enum ServiceAction {
@@ -105,7 +95,6 @@ impl ServiceAction {
     }
 }
 
-/// Log entry from journalctl.
 #[derive(Debug, Clone, Serialize)]
 pub struct LogEntry {
     pub timestamp: String,
@@ -114,7 +103,6 @@ pub struct LogEntry {
     pub message: String,
 }
 
-/// Log query parameters.
 #[derive(Debug, Deserialize)]
 pub struct LogQuery {
     pub unit: Option<String>,
@@ -125,7 +113,6 @@ pub struct LogQuery {
     pub search: Option<String>,
 }
 
-/// System update information.
 #[derive(Debug, Clone, Serialize)]
 pub struct UpdateInfo {
     pub package: String,
@@ -134,7 +121,6 @@ pub struct UpdateInfo {
     pub repository: String,
 }
 
-/// Server configuration entry.
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct ConfigEntry {
     pub key: String,
@@ -143,7 +129,6 @@ pub struct ConfigEntry {
     pub updated_at: String,
 }
 
-/// Request to update a configuration value.
 #[derive(Debug, Deserialize)]
 pub struct UpdateConfigRequest {
     pub key: String,

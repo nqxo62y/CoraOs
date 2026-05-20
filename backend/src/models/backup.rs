@@ -1,8 +1,5 @@
-//! Backup management models.
-
 use serde::{Deserialize, Serialize};
 
-/// Backup record stored in the database.
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct Backup {
     pub id: String,
@@ -15,15 +12,12 @@ pub struct Backup {
     pub created_at: String,
 }
 
-/// Request to create a new backup.
 #[derive(Debug, Deserialize)]
 pub struct CreateBackupRequest {
     pub name: String,
-    /// Directories to include in the backup.
     pub include_paths: Vec<String>,
 }
 
-/// Backup status values.
 #[derive(Debug, Clone, Serialize, Deserialize)]
 #[serde(rename_all = "lowercase")]
 pub enum BackupStatus {

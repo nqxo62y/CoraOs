@@ -1,8 +1,3 @@
-//! Authentication middleware.
-//!
-//! Extracts and validates JWT tokens from request headers, providing
-//! the authenticated user context to route handlers.
-
 use std::sync::Arc;
 
 use axum::{
@@ -18,8 +13,6 @@ use crate::models::auth::AuthenticatedUser;
 use crate::services::auth::validate_token;
 use crate::AppState;
 
-/// Extract the authenticated user from the Authorization header.
-/// Returns 401 if the token is missing or invalid.
 pub async fn require_auth(
     State(state): State<Arc<AppState>>,
     mut request: Request,
@@ -60,7 +53,6 @@ pub async fn require_auth(
     }
 }
 
-/// Middleware that requires the user to have admin role.
 #[allow(dead_code)]
 pub async fn require_admin(
     State(_state): State<Arc<AppState>>,
@@ -84,7 +76,6 @@ pub async fn require_admin(
     }
 }
 
-/// Middleware that requires operator or admin role.
 #[allow(dead_code)]
 pub async fn require_operator(
     State(_state): State<Arc<AppState>>,

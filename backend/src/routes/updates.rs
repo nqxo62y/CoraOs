@@ -1,5 +1,3 @@
-//! System update route handlers.
-
 use std::sync::Arc;
 
 use axum::{extract::State, http::StatusCode, Json};
@@ -9,9 +7,6 @@ use crate::models::auth::AuthenticatedUser;
 use crate::services::{audit, updates as updates_service};
 use crate::AppState;
 
-/// GET /api/updates/check
-///
-/// Check for available system package updates.
 pub async fn check_updates(
     State(_state): State<Arc<AppState>>,
 ) -> Result<Json<Value>, (StatusCode, Json<Value>)> {
@@ -28,14 +23,10 @@ pub async fn check_updates(
     })))
 }
 
-/// POST /api/updates/apply
-///
-/// Apply all available system updates. Requires admin role.
 pub async fn apply_updates(
     State(state): State<Arc<AppState>>,
     axum::Extension(auth_user): axum::Extension<AuthenticatedUser>,
 ) -> Result<Json<Value>, (StatusCode, Json<Value>)> {
-    // Only admins can apply updates
     if auth_user.role != "admin" {
         return Err((
             StatusCode::FORBIDDEN,
@@ -50,7 +41,6 @@ pub async fn apply_updates(
         )
     })?;
 
-    // Audit log
     let _ = audit::log_action(
         &state.db,
         Some(&auth_user.user_id),

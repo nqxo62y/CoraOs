@@ -1,7 +1,3 @@
-//! Log viewer route handlers.
-//!
-//! Provides access to journalctl logs and audit logs.
-
 use std::sync::Arc;
 
 use axum::{
@@ -17,9 +13,6 @@ use crate::models::system::{LogEntry, LogQuery};
 use crate::services::audit;
 use crate::AppState;
 
-/// GET /api/logs
-///
-/// Query system logs from journalctl with optional filters.
 pub async fn get_logs(
     State(_state): State<Arc<AppState>>,
     Query(query): Query<LogQuery>,
@@ -29,9 +22,7 @@ pub async fn get_logs(
         "--output=json".to_string(),
     ];
 
-    // Apply filters
     if let Some(ref unit) = query.unit {
-        // Validate unit name
         if unit.chars().all(|c| c.is_alphanumeric() || c == '-' || c == '_' || c == '.') {
             args.push(format!("--unit={}", unit));
         }
@@ -98,7 +89,6 @@ pub async fn get_logs(
                     .to_string(),
             };
 
-            // Apply search filter if provided
             if let Some(ref search) = query.search {
                 if !entry.message.to_lowercase().contains(&search.to_lowercase())
                     && !entry.unit.to_lowercase().contains(&search.to_lowercase())
@@ -114,9 +104,6 @@ pub async fn get_logs(
     Ok(Json(entries))
 }
 
-/// GET /api/logs/units
-///
-/// List available systemd units for log filtering.
 pub async fn get_log_units(
     State(_state): State<Arc<AppState>>,
 ) -> Result<Json<Vec<String>>, (StatusCode, Json<Value>)> {
@@ -140,9 +127,6 @@ pub async fn get_log_units(
     Ok(Json(units))
 }
 
-/// GET /api/audit
-///
-/// Query audit logs with optional filters and pagination.
 pub async fn get_audit_logs(
     State(state): State<Arc<AppState>>,
     Query(query): Query<AuditLogQuery>,

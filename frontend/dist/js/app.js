@@ -1,17 +1,9 @@
-/**
- * CoraOS Dashboard Application
- * Main application logic handling navigation, data loading, and UI updates.
- */
-
 const App = {
     currentPage: 'overview',
     ws: null,
     refreshInterval: null,
     user: null,
 
-    /**
-     * Initialize the application.
-     */
     init() {
         API.init();
 
@@ -29,9 +21,6 @@ const App = {
         this.loadTheme();
     },
 
-    /**
-     * Inject icons and labels into the static UI.
-     */
     renderIcons() {
         const navItems = {
             overview: { icon: 'dashboard', label: 'Dashboard' },
@@ -88,9 +77,6 @@ const App = {
         set('modal-close', Icons.render('x'));
     },
 
-    /**
-     * Bind all event listeners.
-     */
     bindEvents() {
         // Login form
         document.getElementById('login-form').addEventListener('submit', (e) => {

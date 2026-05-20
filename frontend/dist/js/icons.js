@@ -1,8 +1,3 @@
-/**
- * CoraOS Icon Library
- * Professional stroke-based SVG icons (Lucide-inspired).
- * Use: Icons.render('home') or Icons.render('home', 'icon-lg')
- */
 const Icons = {
     paths: {
         dashboard: '<rect x="3" y="3" width="7" height="9" rx="1"/><rect x="14" y="3" width="7" height="5" rx="1"/><rect x="14" y="12" width="7" height="9" rx="1"/><rect x="3" y="16" width="7" height="5" rx="1"/>',
@@ -41,11 +36,6 @@ const Icons = {
         activity: '<polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/>',
     },
 
-    /**
-     * Render an SVG icon string.
-     * @param {string} name - icon key
-     * @param {string} extraClass - extra CSS class (e.g. 'icon-lg')
-     */
     render(name, extraClass = '') {
         const path = this.paths[name];
         if (!path) return '';

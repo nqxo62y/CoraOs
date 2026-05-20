@@ -1,7 +1,3 @@
-//! System monitoring service.
-//!
-//! Collects real-time metrics about CPU, memory, disk, and network usage.
-
 use std::sync::Mutex;
 
 use sysinfo::{
@@ -12,13 +8,11 @@ use crate::models::system::{
     DiskInfo, LoadAverage, NetworkInterface, ProcessInfo, SystemMetrics,
 };
 
-/// System monitor that maintains a refreshable view of system state.
 pub struct SystemMonitor {
     system: Mutex<System>,
 }
 
 impl SystemMonitor {
-    /// Create a new system monitor instance.
     pub fn new() -> Self {
         let system = System::new_with_specifics(
             RefreshKind::new()
@@ -30,7 +24,6 @@ impl SystemMonitor {
         }
     }
 
-    /// Collect a full snapshot of current system metrics.
     pub fn get_metrics(&self) -> SystemMetrics {
         let mut sys = self.system.lock().unwrap();
         sys.refresh_specifics(
@@ -59,7 +52,6 @@ impl SystemMonitor {
         let swap_total_mb = sys.total_swap() / 1024 / 1024;
         let swap_used_mb = sys.used_swap() / 1024 / 1024;
 
-        // Disk information
         let disks = Disks::new_with_refreshed_list();
         let disk_usage: Vec<DiskInfo> = disks
             .iter()
@@ -83,7 +75,6 @@ impl SystemMonitor {
             })
             .collect();
 
-        // Network interfaces
         let networks = Networks::new_with_refreshed_list();
         let network: Vec<NetworkInterface> = networks
             .iter()
@@ -96,7 +87,6 @@ impl SystemMonitor {
             })
             .collect();
 
-        // Load average (Linux-specific, read from /proc/loadavg)
         let load_average = read_load_average();
 
         SystemMetrics {
@@ -118,7 +108,6 @@ impl SystemMonitor {
         }
     }
 
-    /// Get a list of running processes sorted by CPU usage.
     pub fn get_processes(&self) -> Vec<ProcessInfo> {
         let mut sys = self.system.lock().unwrap();
         sys.refresh_all();
@@ -140,14 +129,12 @@ impl SystemMonitor {
             })
             .collect();
 
-        // Sort by CPU usage descending
         processes.sort_by(|a, b| b.cpu_usage.partial_cmp(&a.cpu_usage).unwrap_or(std::cmp::Ordering::Equal));
-        processes.truncate(100); // Return top 100 processes
+        processes.truncate(100);
         processes
     }
 }
 
-/// Read load average from /proc/loadavg (Linux only).
 fn read_load_average() -> LoadAverage {
     match std::fs::read_to_string("/proc/loadavg") {
         Ok(content) => {

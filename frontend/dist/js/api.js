@@ -1,45 +1,26 @@
-/**
- * CoraOS API Client
- * Handles all HTTP communication with the backend.
- */
 const API = {
     baseUrl: '/api',
     token: null,
 
-    /**
-     * Initialize the API client, loading token from localStorage.
-     */
     init() {
         this.token = localStorage.getItem('coraos_token');
     },
 
-    /**
-     * Set the authentication token.
-     */
     setToken(token) {
         this.token = token;
         localStorage.setItem('coraos_token', token);
     },
 
-    /**
-     * Clear the authentication token.
-     */
     clearToken() {
         this.token = null;
         localStorage.removeItem('coraos_token');
         localStorage.removeItem('coraos_user');
     },
 
-    /**
-     * Check if the user is authenticated.
-     */
     isAuthenticated() {
         return !!this.token;
     },
 
-    /**
-     * Make an authenticated HTTP request.
-     */
     async request(method, path, body = null) {
         const headers = {
             'Content-Type': 'application/json',
@@ -72,7 +53,6 @@ const API = {
         return data;
     },
 
-    // ===== Auth =====
     async login(username, password) {
         const data = await this.request('POST', '/auth/login', { username, password });
         this.setToken(data.token);
@@ -92,7 +72,6 @@ const API = {
         return this.request('GET', '/auth/me');
     },
 
-    // ===== System =====
     async getMetrics() {
         return this.request('GET', '/system/metrics');
     },
@@ -101,7 +80,6 @@ const API = {
         return this.request('GET', '/system/processes');
     },
 
-    // ===== Services =====
     async getServices() {
         return this.request('GET', '/services');
     },
@@ -117,7 +95,6 @@ const API = {
         });
     },
 
-    // ===== Logs =====
     async getLogs(params = {}) {
         const query = new URLSearchParams();
         if (params.unit) query.set('unit', params.unit);
@@ -138,7 +115,6 @@ const API = {
         return this.request('GET', `/audit?${query.toString()}`);
     },
 
-    // ===== Updates =====
     async checkUpdates() {
         return this.request('GET', '/updates/check');
     },
@@ -147,7 +123,6 @@ const API = {
         return this.request('POST', '/updates/apply');
     },
 
-    // ===== Backups =====
     async getBackups() {
         return this.request('GET', '/backups');
     },
@@ -160,7 +135,6 @@ const API = {
         return this.request('DELETE', `/backups/${id}`);
     },
 
-    // ===== Users =====
     async getUsers() {
         return this.request('GET', '/users');
     },
@@ -177,7 +151,6 @@ const API = {
         return this.request('DELETE', `/users/${id}`);
     },
 
-    // ===== Configuration =====
     async getConfig() {
         return this.request('GET', '/config');
     },
@@ -186,7 +159,6 @@ const API = {
         return this.request('POST', '/config', { key, value, description });
     },
 
-    // ===== Storage: FTP =====
     async getFtpStatus() {
         return this.request('GET', '/storage/ftp');
     },
@@ -207,7 +179,6 @@ const API = {
         return this.request('DELETE', `/storage/ftp/users/${encodeURIComponent(name)}`);
     },
 
-    // ===== Storage: RAID =====
     async getRaidArrays() {
         return this.request('GET', '/storage/raid');
     },
@@ -224,7 +195,6 @@ const API = {
         return this.request('DELETE', `/storage/raid/${encodeURIComponent(name)}`);
     },
 
-    // ===== Storage: Mounts =====
     async getMounts() {
         return this.request('GET', '/storage/mounts');
     },

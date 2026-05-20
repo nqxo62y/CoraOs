@@ -1,16 +1,10 @@
-//! Database initialization and migration management.
-//!
-//! Uses SQLite via sqlx for persistent storage of users, sessions, audit logs, etc.
-
 use anyhow::Result;
 use sqlx::sqlite::{SqliteConnectOptions, SqlitePoolOptions};
 use sqlx::SqlitePool;
 use std::str::FromStr;
 use tracing::info;
 
-/// Initialize the SQLite database connection pool and run migrations.
 pub async fn init_database(database_url: &str) -> Result<SqlitePool> {
-    // Ensure the data directory exists
     if let Some(path) = database_url.strip_prefix("sqlite:") {
         let path = path.split('?').next().unwrap_or(path);
         if let Some(parent) = std::path::Path::new(path).parent() {
@@ -28,14 +22,12 @@ pub async fn init_database(database_url: &str) -> Result<SqlitePool> {
         .connect_with(options)
         .await?;
 
-    // Run schema migrations
     run_migrations(&pool).await?;
 
     info!("Database pool established with WAL mode");
     Ok(pool)
 }
 
-/// Execute database schema migrations.
 async fn run_migrations(pool: &SqlitePool) -> Result<()> {
     sqlx::query(
         r#"
@@ -123,7 +115,6 @@ async fn run_migrations(pool: &SqlitePool) -> Result<()> {
     .execute(pool)
     .await?;
 
-    // Create indexes for performance
     sqlx::query(
         "CREATE INDEX IF NOT EXISTS idx_sessions_user_id ON sessions(user_id);",
     )

@@ -1,7 +1,3 @@
-//! Storage management route handlers.
-//!
-//! FTP server (vsftpd), RAID arrays (mdadm), and mount points (fstab).
-
 use std::sync::Arc;
 
 use axum::{extract::State, http::StatusCode, Json};
@@ -12,8 +8,6 @@ use std::process::Command;
 use crate::models::auth::AuthenticatedUser;
 use crate::services::audit;
 use crate::AppState;
-
-// ===== Data Types =====
 
 #[derive(Debug, Serialize)]
 pub struct FtpStatus {
@@ -100,9 +94,6 @@ pub struct UnmountRequest {
     pub mount_point: String,
 }
 
-// ===== FTP Routes =====
-
-/// GET /api/storage/ftp
 pub async fn ftp_status(
     State(_state): State<Arc<AppState>>,
 ) -> Result<Json<FtpStatus>, (StatusCode, Json<Value>)> {
@@ -127,7 +118,6 @@ pub async fn ftp_status(
     Ok(Json(FtpStatus { installed, running, config, users }))
 }
 
-/// POST /api/storage/ftp/install
 pub async fn ftp_install(
     State(state): State<Arc<AppState>>,
     axum::Extension(auth_user): axum::Extension<AuthenticatedUser>,
@@ -154,7 +144,6 @@ pub async fn ftp_install(
     Ok(Json(json!({"message": "vsftpd installed and started"})))
 }
 
-/// POST /api/storage/ftp/config
 pub async fn ftp_update_config(
     State(state): State<Arc<AppState>>,
     axum::Extension(auth_user): axum::Extension<AuthenticatedUser>,
@@ -179,7 +168,6 @@ pub async fn ftp_update_config(
         payload.max_clients,
     );
 
-    // Write config via sudo tee
     let mut child = Command::new("sudo")
         .args(["-n", "tee", "/etc/vsftpd.conf"])
         .stdin(std::process::Stdio::piped())
@@ -193,7 +181,6 @@ pub async fn ftp_update_config(
     }
     let _ = child.wait();
 
-    // Restart vsftpd
     let _ = Command::new("sudo").args(["-n", "systemctl", "restart", "vsftpd"]).output();
 
     let _ = audit::log_action(&state.db, Some(&auth_user.user_id), "ftp_config_update", Some("storage"), None, None).await;
@@ -201,7 +188,6 @@ pub async fn ftp_update_config(
     Ok(Json(json!({"message": "FTP configuration updated and service restarted"})))
 }
 
-/// POST /api/storage/ftp/users
 pub async fn ftp_add_user(
     State(state): State<Arc<AppState>>,
     axum::Extension(auth_user): axum::Extension<AuthenticatedUser>,
@@ -211,14 +197,12 @@ pub async fn ftp_add_user(
         return Err((StatusCode::FORBIDDEN, Json(json!({"error": "Admin access required"}))));
     }
 
-    // Validate username
     if !payload.username.chars().all(|c| c.is_alphanumeric() || c == '_' || c == '-') {
         return Err((StatusCode::BAD_REQUEST, Json(json!({"error": "Invalid username"}))));
     }
 
     let home_dir = payload.directory.unwrap_or_else(|| format!("/srv/ftp/{}", payload.username));
 
-    // Create user with FTP home
     let output = Command::new("sudo")
         .args(["-n", "useradd", "-m", "-d", &home_dir, "-s", "/usr/sbin/nologin", &payload.username])
         .output()
@@ -229,7 +213,6 @@ pub async fn ftp_add_user(
         return Err((StatusCode::INTERNAL_SERVER_ERROR, Json(json!({"error": stderr.trim()}))));
     }
 
-    // Set password
     let pass_input = format!("{}:{}", payload.username, payload.password);
     let mut child = Command::new("sudo")
         .args(["-n", "chpasswd"])
@@ -249,7 +232,6 @@ pub async fn ftp_add_user(
     Ok(Json(json!({"message": format!("FTP user '{}' created", payload.username)})))
 }
 
-/// DELETE /api/storage/ftp/users/:name
 pub async fn ftp_delete_user(
     State(state): State<Arc<AppState>>,
     axum::Extension(auth_user): axum::Extension<AuthenticatedUser>,
@@ -266,9 +248,6 @@ pub async fn ftp_delete_user(
     Ok(Json(json!({"message": format!("FTP user '{}' deleted", name)})))
 }
 
-// ===== RAID Routes =====
-
-/// GET /api/storage/raid
 pub async fn raid_list(
     State(_state): State<Arc<AppState>>,
 ) -> Result<Json<Vec<RaidArray>>, (StatusCode, Json<Value>)> {
@@ -276,7 +255,6 @@ pub async fn raid_list(
     Ok(Json(arrays))
 }
 
-/// GET /api/storage/disks
 pub async fn list_block_devices(
     State(_state): State<Arc<AppState>>,
 ) -> Result<Json<Vec<BlockDevice>>, (StatusCode, Json<Value>)> {
@@ -304,7 +282,6 @@ pub async fn list_block_devices(
     Ok(Json(devices))
 }
 
-/// POST /api/storage/raid
 pub async fn raid_create(
     State(state): State<Arc<AppState>>,
     axum::Extension(auth_user): axum::Extension<AuthenticatedUser>,
@@ -314,7 +291,6 @@ pub async fn raid_create(
         return Err((StatusCode::FORBIDDEN, Json(json!({"error": "Admin access required"}))));
     }
 
-    // Validate RAID level
     let valid_levels = ["0", "1", "5", "6", "10"];
     if !valid_levels.contains(&payload.level.as_str()) {
         return Err((StatusCode::BAD_REQUEST, Json(json!({"error": "Invalid RAID level. Use: 0, 1, 5, 6, or 10"}))));
@@ -324,7 +300,6 @@ pub async fn raid_create(
         return Err((StatusCode::BAD_REQUEST, Json(json!({"error": "At least 2 devices required"}))));
     }
 
-    // Validate device paths
     for dev in &payload.devices {
         if !dev.starts_with("/dev/") || dev.contains("..") {
             return Err((StatusCode::BAD_REQUEST, Json(json!({"error": format!("Invalid device: {}", dev)}))));
@@ -360,7 +335,6 @@ pub async fn raid_create(
     Ok(Json(json!({"message": format!("RAID array '{}' created (level {})", payload.name, payload.level)})))
 }
 
-/// DELETE /api/storage/raid/:name
 pub async fn raid_delete(
     State(state): State<Arc<AppState>>,
     axum::Extension(auth_user): axum::Extension<AuthenticatedUser>,
@@ -379,9 +353,6 @@ pub async fn raid_delete(
     Ok(Json(json!({"message": format!("RAID array '{}' stopped and removed", name)})))
 }
 
-// ===== Mount Routes =====
-
-/// GET /api/storage/mounts
 pub async fn list_mounts(
     State(_state): State<Arc<AppState>>,
 ) -> Result<Json<Vec<MountPoint>>, (StatusCode, Json<Value>)> {
@@ -416,7 +387,6 @@ pub async fn list_mounts(
     Ok(Json(mounts))
 }
 
-/// POST /api/storage/mount
 pub async fn mount_device(
     State(state): State<Arc<AppState>>,
     axum::Extension(auth_user): axum::Extension<AuthenticatedUser>,
@@ -426,7 +396,6 @@ pub async fn mount_device(
         return Err((StatusCode::FORBIDDEN, Json(json!({"error": "Admin access required"}))));
     }
 
-    // Validate paths
     if !payload.device.starts_with("/dev/") || payload.device.contains("..") {
         return Err((StatusCode::BAD_REQUEST, Json(json!({"error": "Invalid device path"}))));
     }
@@ -434,10 +403,8 @@ pub async fn mount_device(
         return Err((StatusCode::BAD_REQUEST, Json(json!({"error": "Invalid mount point"}))));
     }
 
-    // Create mount point directory
     let _ = Command::new("sudo").args(["-n", "mkdir", "-p", &payload.mount_point]).output();
 
-    // Mount
     let mut args = vec!["-n".to_string(), "mount".to_string()];
     if !payload.filesystem.is_empty() {
         args.push("-t".to_string());
@@ -462,7 +429,6 @@ pub async fn mount_device(
         return Err((StatusCode::INTERNAL_SERVER_ERROR, Json(json!({"error": stderr.trim()}))));
     }
 
-    // Add to fstab if persistent
     if payload.persistent {
         let fstab_line = format!(
             "{} {} {} {} 0 2\n",
@@ -490,7 +456,6 @@ pub async fn mount_device(
     Ok(Json(json!({"message": format!("Mounted {} at {}", payload.device, payload.mount_point)})))
 }
 
-/// POST /api/storage/unmount
 pub async fn unmount_device(
     State(state): State<Arc<AppState>>,
     axum::Extension(auth_user): axum::Extension<AuthenticatedUser>,
@@ -514,8 +479,6 @@ pub async fn unmount_device(
 
     Ok(Json(json!({"message": format!("Unmounted {}", payload.mount_point)})))
 }
-
-// ===== Helper Functions =====
 
 fn bool_to_yn(b: bool) -> &'static str {
     if b { "YES" } else { "NO" }

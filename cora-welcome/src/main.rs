@@ -227,8 +227,9 @@ fn main_menu(sys: &mut System) {
             }
             "i" | "I" if is_live_mode() => {
                 clear_screen();
+                println!("\x1b[1;36mLaunching Calamares installer...\x1b[0m\n");
                 let _ = Command::new("sudo")
-                    .args(["coraos-installer-gui"])
+                    .args(["calamares"])
                     .status();
             }
             "0" => {

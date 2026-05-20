@@ -1,132 +1,110 @@
 #!/bin/bash
 #
 # CoraOS ISO Build Script
-# Builds a bootable Debian ISO with:
-#   - Live mode (try without installing)
-#   - Install mode (real disk installer with setup wizard)
-#   - Apache2 + Rust backend + dashboard
-#   - Console admin utility
-#   - Custom Plymouth boot splash
+#
+# Produces a bootable Debian live ISO with:
+#   - Calamares graphical installer
+#   - CoraOS web management platform (Apache + Rust backend)
+#   - Console admin utility on tty1
+#   - Plymouth boot splash
 #
 
 set -e
 
-INFO() { echo -e "\e[1;34m[INFO]\e[0m $1"; }
-SUCCESS() { echo -e "\e[1;32m[SUCCESS]\e[0m $1"; }
-ERROR() { echo -e "\e[1;31m[ERROR]\e[0m $1"; exit 1; }
+INFO()    { echo -e "\e[1;34m[INFO]\e[0m $1"; }
+SUCCESS() { echo -e "\e[1;32m[OK]\e[0m $1"; }
+ERROR()   { echo -e "\e[1;31m[ERROR]\e[0m $1"; exit 1; }
 
-if [ "$EUID" -ne 0 ]; then
-  ERROR "This script must be run as root. Please run with sudo."
-fi
+[[ "$EUID" -eq 0 ]] || ERROR "Run this script as root."
 
 WORKDIR=$(pwd)
-CHROOT_DIR="${WORKDIR}/chroot"
-IMAGE_DIR="${WORKDIR}/image"
+CHROOT="${WORKDIR}/chroot"
+IMAGE="${WORKDIR}/image"
 ISO_NAME="coraos.iso"
 
 cleanup() {
-  INFO "Cleaning up temporary mounts..."
-  if mountpoint -q "${CHROOT_DIR}/proc" 2>/dev/null; then umount -lf "${CHROOT_DIR}/proc"; fi
-  if mountpoint -q "${CHROOT_DIR}/sys" 2>/dev/null; then umount -lf "${CHROOT_DIR}/sys"; fi
-  if mountpoint -q "${CHROOT_DIR}/dev/pts" 2>/dev/null; then umount -lf "${CHROOT_DIR}/dev/pts"; fi
-  if mountpoint -q "${CHROOT_DIR}/dev" 2>/dev/null; then umount -lf "${CHROOT_DIR}/dev"; fi
-  SUCCESS "Cleanup finished."
+    for mp in proc sys dev/pts dev; do
+        mountpoint -q "${CHROOT}/${mp}" 2>/dev/null && umount -lf "${CHROOT}/${mp}"
+    done
 }
 trap cleanup EXIT
 
-# ============================================================
-# Host dependencies
-# ============================================================
-INFO "Installing required build dependencies on host..."
-apt-get update
-apt-get install -y debootstrap squashfs-tools xorriso grub-pc-bin grub-efi-amd64-bin mtools python3-pillow
+# ─── Host Dependencies ────────────────────────────────────────────────────────
 
-# ============================================================
-# Boot logo
-# ============================================================
-INFO "Processing custom boot logo..."
-if [ -f "logo/logo.ico" ]; then
-  python3 -c "from PIL import Image; Image.open('logo/logo.ico').save('logo/logo.png')"
-  python3 -c "from PIL import Image, ImageDraw; img = Image.new('RGBA', (12, 12), (0,0,0,0)); draw = ImageDraw.Draw(img); draw.ellipse((0, 0, 12, 12), fill='white'); img.save('plymouth/dot.png')"
-  SUCCESS "Logo assets generated."
-else
-  ERROR "Could not find logo/logo.ico!"
-fi
+INFO "Installing host build tools..."
+apt-get update -qq
+apt-get install -y -qq debootstrap squashfs-tools xorriso \
+    grub-pc-bin grub-efi-amd64-bin mtools python3-pillow
 
-# ============================================================
-# Build Rust binaries (if not already built by CI)
-# ============================================================
-if [ ! -f "cora-welcome/target/release/cora-welcome" ]; then
-  INFO "Building cora-welcome..."
-  if ! command -v cargo &> /dev/null; then
-    curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh -s -- -y
-    source "$HOME/.cargo/env"
-  fi
-  cd cora-welcome && cargo build --release && cd ..
-fi
+# ─── Logo Assets ──────────────────────────────────────────────────────────────
 
-if [ ! -f "backend/target/release/coraos-backend" ]; then
-  INFO "Building coraos-backend..."
-  if ! command -v cargo &> /dev/null; then
-    curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh -s -- -y
-    source "$HOME/.cargo/env"
-  fi
-  cd backend && cargo build --release && cd ..
-fi
+INFO "Generating logo assets..."
+[[ -f "logo/logo.ico" ]] || ERROR "logo/logo.ico not found"
+python3 -c "from PIL import Image; Image.open('logo/logo.ico').save('logo/logo.png')"
+python3 -c "
+from PIL import Image, ImageDraw
+img = Image.new('RGBA', (12, 12), (0,0,0,0))
+draw = ImageDraw.Draw(img)
+draw.ellipse((0, 0, 12, 12), fill='white')
+img.save('plymouth/dot.png')
+"
+SUCCESS "Logo assets ready."
 
-SUCCESS "All binaries ready."
+# ─── Rust Binaries ────────────────────────────────────────────────────────────
 
-# ============================================================
-# Bootstrap Debian
-# ============================================================
-INFO "Bootstrapping Debian system (stable/bookworm)..."
-rm -rf "${CHROOT_DIR}" "${IMAGE_DIR}"
-mkdir -p "${CHROOT_DIR}"
-debootstrap --arch=amd64 stable "${CHROOT_DIR}" http://deb.debian.org/debian/
-SUCCESS "Debian base bootstrapped."
+build_rust() {
+    local dir="$1"
+    local bin="$2"
+    if [[ ! -f "${dir}/target/release/${bin}" ]]; then
+        INFO "Building ${bin}..."
+        command -v cargo &>/dev/null || {
+            curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh -s -- -y
+            source "$HOME/.cargo/env"
+        }
+        (cd "$dir" && cargo build --release)
+    fi
+}
 
-# ============================================================
-# Deploy binaries and assets into chroot
-# ============================================================
-INFO "Deploying CoraOS into chroot..."
+build_rust "cora-welcome" "cora-welcome"
+build_rust "backend" "coraos-backend"
+SUCCESS "Binaries compiled."
 
-# Console welcome utility
-mkdir -p "${CHROOT_DIR}/usr/local/bin"
-cp cora-welcome/target/release/cora-welcome "${CHROOT_DIR}/usr/local/bin/"
-chmod +x "${CHROOT_DIR}/usr/local/bin/cora-welcome"
+# ─── Bootstrap Debian ─────────────────────────────────────────────────────────
 
-# Web management backend
-cp backend/target/release/coraos-backend "${CHROOT_DIR}/usr/local/bin/"
-chmod +x "${CHROOT_DIR}/usr/local/bin/coraos-backend"
+INFO "Bootstrapping Debian stable..."
+rm -rf "${CHROOT}" "${IMAGE}"
+mkdir -p "${CHROOT}"
+debootstrap --arch=amd64 stable "${CHROOT}" http://deb.debian.org/debian/
+SUCCESS "Base system ready."
 
-# Installer scripts
-cp scripts/installer.sh "${CHROOT_DIR}/usr/local/bin/coraos-installer"
-chmod +x "${CHROOT_DIR}/usr/local/bin/coraos-installer"
+# ─── Deploy CoraOS Files ──────────────────────────────────────────────────────
 
-cp scripts/coraos-installer-gui "${CHROOT_DIR}/usr/local/bin/coraos-installer-gui"
-chmod +x "${CHROOT_DIR}/usr/local/bin/coraos-installer-gui"
+INFO "Deploying CoraOS files..."
 
-mkdir -p "${CHROOT_DIR}/usr/local/share/coraos"
-cp scripts/installer-gui.py "${CHROOT_DIR}/usr/local/share/coraos/installer-gui.py"
-chmod +x "${CHROOT_DIR}/usr/local/share/coraos/installer-gui.py"
+# Binaries
+install -m 755 cora-welcome/target/release/cora-welcome "${CHROOT}/usr/local/bin/"
+install -m 755 backend/target/release/coraos-backend    "${CHROOT}/usr/local/bin/"
 
-# Frontend static files (served by Apache)
-mkdir -p "${CHROOT_DIR}/var/www/coraos"
-cp -r frontend/dist/* "${CHROOT_DIR}/var/www/coraos/"
+# Web frontend (served by Apache)
+mkdir -p "${CHROOT}/var/www/coraos"
+cp -r frontend/dist/* "${CHROOT}/var/www/coraos/"
 
 # Backend working directory
-mkdir -p "${CHROOT_DIR}/opt/coraos/data"
-mkdir -p "${CHROOT_DIR}/opt/coraos/backups"
-mkdir -p "${CHROOT_DIR}/opt/coraos/logs"
-mkdir -p "${CHROOT_DIR}/opt/coraos/frontend/dist"
-cp -r frontend/dist/* "${CHROOT_DIR}/opt/coraos/frontend/dist/"
+mkdir -p "${CHROOT}/opt/coraos"/{data,backups,logs,frontend/dist}
+cp -r frontend/dist/* "${CHROOT}/opt/coraos/frontend/dist/"
 
-# systemd service for the backend API
-cat << 'SVCEOF' > "${CHROOT_DIR}/etc/systemd/system/coraos.service"
+# Plymouth theme
+mkdir -p "${CHROOT}/usr/share/plymouth/themes/coraos"
+cp logo/logo.png plymouth/dot.png plymouth/coraos.plymouth plymouth/coraos.script \
+   "${CHROOT}/usr/share/plymouth/themes/coraos/"
+
+# ─── Systemd Services ─────────────────────────────────────────────────────────
+
+# Backend API service
+cat > "${CHROOT}/etc/systemd/system/coraos.service" << 'EOF'
 [Unit]
-Description=CoraOS Server Management Platform
+Description=CoraOS Backend
 After=network.target apache2.service
-Wants=network-online.target
 
 [Service]
 Type=simple
@@ -136,152 +114,16 @@ WorkingDirectory=/opt/coraos
 ExecStart=/usr/local/bin/coraos-backend
 Restart=always
 RestartSec=5
-Environment=RUST_LOG=coraos_backend=info,tower_http=info
+Environment=RUST_LOG=coraos_backend=info
 
 [Install]
 WantedBy=multi-user.target
-SVCEOF
+EOF
 
-# Plymouth boot theme
-PLYMOUTH_THEME_DIR="${CHROOT_DIR}/usr/share/plymouth/themes/coraos"
-mkdir -p "${PLYMOUTH_THEME_DIR}"
-cp logo/logo.png "${PLYMOUTH_THEME_DIR}/logo.png"
-cp plymouth/dot.png "${PLYMOUTH_THEME_DIR}/dot.png"
-cp plymouth/coraos.plymouth "${PLYMOUTH_THEME_DIR}/coraos.plymouth"
-cp plymouth/coraos.script "${PLYMOUTH_THEME_DIR}/coraos.script"
-
-# ============================================================
-# Apache2 virtual host configuration
-# ============================================================
-INFO "Creating Apache2 configuration..."
-mkdir -p "${CHROOT_DIR}/etc/apache2/sites-available"
-cat << 'APACHECONF' > "${CHROOT_DIR}/etc/apache2/sites-available/coraos.conf"
-<VirtualHost *:80>
-    ServerName coraos
-    DocumentRoot /var/www/coraos
-
-    <Directory /var/www/coraos>
-        Options -Indexes +FollowSymLinks
-        AllowOverride None
-        Require all granted
-    </Directory>
-
-    # Proxy API to Rust backend
-    ProxyPreserveHost On
-    ProxyPass /api http://127.0.0.1:8080/api
-    ProxyPassReverse /api http://127.0.0.1:8080/api
-
-    # WebSocket proxy
-    RewriteEngine On
-    RewriteCond %{HTTP:Upgrade} websocket [NC]
-    RewriteCond %{HTTP:Connection} upgrade [NC]
-    RewriteRule ^/api/ws$ ws://127.0.0.1:8080/api/ws [P,L]
-
-    # SPA fallback
-    RewriteCond %{REQUEST_URI} !^/api
-    RewriteCond %{DOCUMENT_ROOT}%{REQUEST_URI} !-f
-    RewriteCond %{DOCUMENT_ROOT}%{REQUEST_URI} !-d
-    RewriteRule . /index.html [L]
-
-    ErrorLog ${APACHE_LOG_DIR}/coraos-error.log
-    CustomLog ${APACHE_LOG_DIR}/coraos-access.log combined
-</VirtualHost>
-APACHECONF
-
-# ============================================================
-# Chroot configuration
-# ============================================================
-INFO "Mounting pseudo-filesystems into chroot..."
-mount --bind /dev "${CHROOT_DIR}/dev"
-mount --bind /dev/pts "${CHROOT_DIR}/dev/pts"
-mount --bind /proc "${CHROOT_DIR}/proc"
-mount --bind /sys "${CHROOT_DIR}/sys"
-
-INFO "Configuring Debian OS in chroot..."
-cat << 'EOF' > "${CHROOT_DIR}/tmp/chroot_setup.sh"
-#!/bin/bash
-set -e
-
-echo "coraos" > /etc/hostname
-echo "127.0.0.1   localhost coraos" > /etc/hosts
-
-export DEBIAN_FRONTEND=noninteractive
-
-apt-get update
-apt-get install -y --no-install-recommends \
-  linux-image-amd64 \
-  live-boot \
-  live-config \
-  live-config-systemd \
-  systemd \
-  systemd-sysv \
-  grub-common \
-  grub-pc-bin \
-  grub-efi-amd64-bin \
-  plymouth \
-  plymouth-themes \
-  sudo \
-  network-manager \
-  iproute2 \
-  bash \
-  coreutils \
-  util-linux \
-  console-setup \
-  dbus \
-  apache2 \
-  parted \
-  dosfstools \
-  e2fsprogs \
-  squashfs-tools \
-  os-prober \
-  python3 \
-  python3-gi \
-  gir1.2-gtk-3.0 \
-  xorg \
-  xinit \
-  openbox \
-  dbus-x11
-
-# Enable Apache modules
-a2enmod proxy
-a2enmod proxy_http
-a2enmod proxy_wstunnel
-a2enmod rewrite
-
-# Disable default site, enable CoraOS site
-a2dissite 000-default
-a2ensite coraos
-
-# Enable services
-systemctl enable NetworkManager
-systemctl enable apache2
-systemctl enable coraos.service
-
-# Create system user for the backend
-useradd --system --no-create-home --shell /usr/sbin/nologin coraos 2>/dev/null || true
-chown -R coraos:coraos /opt/coraos
-
-# Sudoers rules for the backend to manage system services
-cat > /etc/sudoers.d/coraos << 'SUDOEOF'
-coraos ALL=(root) NOPASSWD: /bin/systemctl, /usr/bin/systemctl
-coraos ALL=(root) NOPASSWD: /usr/bin/apt-get, /usr/bin/apt
-coraos ALL=(root) NOPASSWD: /bin/journalctl, /usr/bin/journalctl
-coraos ALL=(root) NOPASSWD: /bin/tar, /usr/bin/tar
-SUDOEOF
-chmod 440 /etc/sudoers.d/coraos
-
-# Create interactive user
-useradd -m -s /bin/bash cora
-echo "cora:cora" | chpasswd
-usermod -aG sudo cora
-echo "cora ALL=(ALL) NOPASSWD:ALL" >> /etc/sudoers
-
-# Run cora-welcome directly on tty1 via systemd (no login shell needed)
-# This completely bypasses any shell profile issues from live-config
-mkdir -p /etc/systemd/system
-cat << 'CORATTY_EOF' > /etc/systemd/system/coraos-console.service
+# Console menu on tty1
+cat > "${CHROOT}/etc/systemd/system/coraos-console.service" << 'EOF'
 [Unit]
-Description=CoraOS Console Menu
+Description=CoraOS Console
 After=multi-user.target
 Conflicts=getty@tty1.service
 
@@ -292,128 +134,156 @@ StandardOutput=tty
 TTYPath=/dev/tty1
 TTYReset=yes
 TTYVHangup=yes
-TTYVTDisallocate=yes
 User=cora
 Environment=TERM=linux HOME=/home/cora
 Restart=always
-RestartSec=1
-UtmpIdentifier=tty1
-UtmpMode=user
+RestartSec=2
 
 [Install]
 WantedBy=multi-user.target
-CORATTY_EOF
-
-# Disable default getty on tty1, enable our console service
-systemctl disable getty@tty1.service 2>/dev/null || true
-systemctl enable coraos-console.service
-
-# Plymouth boot theme
-plymouth-set-default-theme -R coraos
-
-apt-get clean
-rm -rf /var/lib/apt/lists/*
 EOF
 
-chmod +x "${CHROOT_DIR}/tmp/chroot_setup.sh"
-chroot "${CHROOT_DIR}" /bin/bash /tmp/chroot_setup.sh
-rm -f "${CHROOT_DIR}/tmp/chroot_setup.sh"
-SUCCESS "Guest system configuration complete."
+# ─── Apache Virtual Host ──────────────────────────────────────────────────────
+
+mkdir -p "${CHROOT}/etc/apache2/sites-available"
+cat > "${CHROOT}/etc/apache2/sites-available/coraos.conf" << 'EOF'
+<VirtualHost *:80>
+    ServerName coraos
+    DocumentRoot /var/www/coraos
+
+    <Directory /var/www/coraos>
+        Options -Indexes +FollowSymLinks
+        AllowOverride None
+        Require all granted
+    </Directory>
+
+    ProxyPreserveHost On
+    ProxyPass /api http://127.0.0.1:8080/api
+    ProxyPassReverse /api http://127.0.0.1:8080/api
+
+    RewriteEngine On
+    RewriteCond %{HTTP:Upgrade} websocket [NC]
+    RewriteCond %{HTTP:Connection} upgrade [NC]
+    RewriteRule ^/api/ws$ ws://127.0.0.1:8080/api/ws [P,L]
+
+    RewriteCond %{REQUEST_URI} !^/api
+    RewriteCond %{DOCUMENT_ROOT}%{REQUEST_URI} !-f
+    RewriteCond %{DOCUMENT_ROOT}%{REQUEST_URI} !-d
+    RewriteRule . /index.html [L]
+</VirtualHost>
+EOF
+
+# ─── Chroot Setup ─────────────────────────────────────────────────────────────
+
+INFO "Mounting chroot filesystems..."
+mount --bind /dev     "${CHROOT}/dev"
+mount --bind /dev/pts "${CHROOT}/dev/pts"
+mount --bind /proc    "${CHROOT}/proc"
+mount --bind /sys     "${CHROOT}/sys"
+
+INFO "Installing packages inside chroot..."
+cat > "${CHROOT}/tmp/setup.sh" << 'SETUP'
+#!/bin/bash
+set -e
+echo "coraos" > /etc/hostname
+echo "127.0.0.1 localhost coraos" > /etc/hosts
+export DEBIAN_FRONTEND=noninteractive
+
+apt-get update
+apt-get install -y --no-install-recommends \
+    linux-image-amd64 live-boot live-config live-config-systemd \
+    systemd systemd-sysv grub-common grub-pc-bin grub-efi-amd64-bin \
+    plymouth plymouth-themes sudo network-manager iproute2 \
+    bash coreutils util-linux console-setup dbus dbus-x11 \
+    apache2 parted dosfstools e2fsprogs squashfs-tools os-prober \
+    calamares calamares-settings-debian \
+    xorg xinit openbox
+
+# Apache setup
+a2enmod proxy proxy_http proxy_wstunnel rewrite
+a2dissite 000-default
+a2ensite coraos
+
+# Enable services
+systemctl enable NetworkManager apache2 coraos.service coraos-console.service
+systemctl disable getty@tty1.service 2>/dev/null || true
+
+# Backend system user
+useradd --system --no-create-home --shell /usr/sbin/nologin coraos 2>/dev/null || true
+chown -R coraos:coraos /opt/coraos
+
+# Sudoers for backend
+cat > /etc/sudoers.d/coraos << 'SUDOERS'
+coraos ALL=(root) NOPASSWD: /bin/systemctl, /usr/bin/systemctl
+coraos ALL=(root) NOPASSWD: /usr/bin/apt-get, /usr/bin/apt
+coraos ALL=(root) NOPASSWD: /bin/journalctl, /usr/bin/journalctl
+coraos ALL=(root) NOPASSWD: /bin/tar, /usr/bin/tar
+coraos ALL=(root) NOPASSWD: /sbin/mount, /bin/mount, /sbin/umount, /bin/umount
+coraos ALL=(root) NOPASSWD: /sbin/mdadm, /usr/sbin/mdadm
+coraos ALL=(root) NOPASSWD: /usr/sbin/useradd, /usr/sbin/userdel, /usr/sbin/chpasswd
+coraos ALL=(root) NOPASSWD: /usr/bin/tee
+SUDOERS
+chmod 440 /etc/sudoers.d/coraos
+
+# Interactive user (live session)
+useradd -m -s /bin/bash cora
+echo "cora:cora" | chpasswd
+usermod -aG sudo cora
+echo "cora ALL=(ALL) NOPASSWD:ALL" >> /etc/sudoers
+
+# Plymouth
+plymouth-set-default-theme -R coraos
+
+# Cleanup
+apt-get clean
+rm -rf /var/lib/apt/lists/*
+SETUP
+
+chmod +x "${CHROOT}/tmp/setup.sh"
+chroot "${CHROOT}" /bin/bash /tmp/setup.sh
+rm -f "${CHROOT}/tmp/setup.sh"
+SUCCESS "Chroot configuration complete."
 
 cleanup
 
-# ============================================================
-# Build ISO
-# ============================================================
+# ─── Build ISO ────────────────────────────────────────────────────────────────
+
 INFO "Preparing boot files..."
-mkdir -p "${IMAGE_DIR}/live"
-KERNEL_PATH=$(ls -1 "${CHROOT_DIR}/boot/vmlinuz-"* | head -n 1)
-INITRD_PATH=$(ls -1 "${CHROOT_DIR}/boot/initrd.img-"* | head -n 1)
+mkdir -p "${IMAGE}/live"
+cp "${CHROOT}"/boot/vmlinuz-*  "${IMAGE}/live/vmlinuz"
+cp "${CHROOT}"/boot/initrd.img-* "${IMAGE}/live/initrd.img"
 
-cp "${KERNEL_PATH}" "${IMAGE_DIR}/live/vmlinuz"
-cp "${INITRD_PATH}" "${IMAGE_DIR}/live/initrd.img"
-SUCCESS "Kernel and initramfs exported."
+INFO "Creating SquashFS..."
+mksquashfs "${CHROOT}" "${IMAGE}/live/filesystem.squashfs" -comp xz -e boot
+SUCCESS "Filesystem image created."
 
-INFO "Creating SquashFS image..."
-mksquashfs "${CHROOT_DIR}" "${IMAGE_DIR}/live/filesystem.squashfs" -comp xz -e boot
-SUCCESS "SquashFS root filesystem generated."
-
-INFO "Creating bootloader configuration..."
-mkdir -p "${IMAGE_DIR}/boot/grub"
-cat << 'EOF' > "${IMAGE_DIR}/boot/grub/grub.cfg"
+INFO "Writing GRUB config..."
+mkdir -p "${IMAGE}/boot/grub"
+cat > "${IMAGE}/boot/grub/grub.cfg" << 'EOF'
 set default="0"
 set timeout=10
-
 insmod all_video
 
-menuentry "CoraOS - Install to Disk" {
-    linux /live/vmlinuz boot=live quiet splash plymouth.ignore-serial-consoles vt.global_cursor_default=0 systemd.unit=multi-user.target coraos.install=1
+menuentry "CoraOS - Install" {
+    linux /live/vmlinuz boot=live quiet splash
     initrd /live/initrd.img
 }
 
-menuentry "CoraOS - Live Mode (try without installing)" {
-    linux /live/vmlinuz boot=live quiet splash plymouth.ignore-serial-consoles vt.global_cursor_default=0
+menuentry "CoraOS - Live Mode" {
+    linux /live/vmlinuz boot=live quiet splash
     initrd /live/initrd.img
 }
 
-menuentry "CoraOS - Live Mode (safe graphics)" {
-    linux /live/vmlinuz boot=live quiet splash nomodeset plymouth.ignore-serial-consoles vt.global_cursor_default=0
+menuentry "CoraOS - Safe Graphics" {
+    linux /live/vmlinuz boot=live quiet splash nomodeset
     initrd /live/initrd.img
 }
 EOF
-SUCCESS "GRUB configuration created."
 
-# Add a hook so the installer auto-launches when booted with coraos.install=1
-mkdir -p "${CHROOT_DIR}/etc/systemd/system"
-cat << 'INSTALLSVC' > "${CHROOT_DIR}/etc/systemd/system/coraos-autoinstall.service"
-[Unit]
-Description=CoraOS GUI Installer
-After=multi-user.target
-ConditionKernelCommandLine=coraos.install=1
+INFO "Building ISO..."
+grub-mkrescue -o "${ISO_NAME}" "${IMAGE}"
 
-[Service]
-Type=simple
-ExecStart=/usr/local/bin/coraos-installer-gui
-StandardInput=tty
-StandardOutput=tty
-TTYPath=/dev/tty1
-TTYReset=yes
-TTYVHangup=yes
-Environment=DISPLAY=:0
-
-[Install]
-WantedBy=multi-user.target
-INSTALLSVC
-
-# Enable the auto-install service in the squashfs
-# We need to re-mount and add the symlink
-mount --bind /dev "${CHROOT_DIR}/dev"
-mount --bind /proc "${CHROOT_DIR}/proc"
-mount --bind /sys "${CHROOT_DIR}/sys"
-chroot "${CHROOT_DIR}" systemctl enable coraos-autoinstall.service
-umount "${CHROOT_DIR}/dev" 2>/dev/null || true
-umount "${CHROOT_DIR}/proc" 2>/dev/null || true
-umount "${CHROOT_DIR}/sys" 2>/dev/null || true
-
-# Rebuild squashfs with the installer service enabled
-INFO "Rebuilding SquashFS with installer service..."
-rm -f "${IMAGE_DIR}/live/filesystem.squashfs"
-mksquashfs "${CHROOT_DIR}" "${IMAGE_DIR}/live/filesystem.squashfs" -comp xz -e boot
-SUCCESS "Final SquashFS generated."
-
-INFO "Compiling bootable hybrid UEFI/BIOS ISO..."
-grub-mkrescue -o "${ISO_NAME}" "${IMAGE_DIR}"
-
-SUCCESS "═══════════════════════════════════════════════════════════"
-SUCCESS " CoraOS ISO generated: ${WORKDIR}/${ISO_NAME}"
-SUCCESS ""
-SUCCESS " Boot menu options:"
-SUCCESS "   1. Install to Disk  - Full setup wizard"
-SUCCESS "   2. Live Mode        - Try without installing"
-SUCCESS "   3. Safe Graphics    - For compatibility"
-SUCCESS ""
-SUCCESS " After installation:"
-SUCCESS "   Dashboard: http://<server-ip>"
-SUCCESS "   Console:   auto-login on tty1"
-SUCCESS "   SSH:       cora / cora"
-SUCCESS "═══════════════════════════════════════════════════════════"
+SUCCESS "Done: ${WORKDIR}/${ISO_NAME}"
+SUCCESS "  Dashboard: http://<ip>"
+SUCCESS "  Console:   tty1 (auto)"
+SUCCESS "  Installer: Launch Calamares from desktop or run 'sudo calamares'"

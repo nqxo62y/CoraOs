@@ -1,8 +1,5 @@
-//! Audit logging models.
-
 use serde::{Deserialize, Serialize};
 
-/// Audit log entry stored in the database.
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct AuditLog {
     pub id: String,
@@ -14,7 +11,6 @@ pub struct AuditLog {
     pub created_at: String,
 }
 
-/// Query parameters for filtering audit logs.
 #[derive(Debug, Deserialize)]
 #[allow(dead_code)]
 pub struct AuditLogQuery {

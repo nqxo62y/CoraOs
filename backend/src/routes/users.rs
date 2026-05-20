@@ -1,5 +1,3 @@
-//! User management route handlers.
-
 use std::sync::Arc;
 
 use axum::{
@@ -17,7 +15,6 @@ use crate::models::user::{CreateUserRequest, UpdateUserRequest, User, UserRespon
 use crate::services::{audit, auth as auth_service};
 use crate::AppState;
 
-/// GET /api/users
 pub async fn list_users(
     State(state): State<Arc<AppState>>,
     axum::Extension(auth_user): axum::Extension<AuthenticatedUser>,
@@ -61,7 +58,6 @@ pub async fn list_users(
     Ok(Json(users))
 }
 
-/// GET /api/users/:id
 pub async fn get_user(
     State(state): State<Arc<AppState>>,
     axum::Extension(auth_user): axum::Extension<AuthenticatedUser>,
@@ -111,7 +107,6 @@ pub async fn get_user(
     }
 }
 
-/// POST /api/users
 pub async fn create_user(
     State(state): State<Arc<AppState>>,
     axum::Extension(auth_user): axum::Extension<AuthenticatedUser>,
@@ -208,7 +203,6 @@ pub async fn create_user(
     Ok((StatusCode::CREATED, Json(response)))
 }
 
-/// PUT /api/users/:id
 pub async fn update_user(
     State(state): State<Arc<AppState>>,
     axum::Extension(auth_user): axum::Extension<AuthenticatedUser>,
@@ -314,7 +308,6 @@ pub async fn update_user(
     Ok(Json(json!({"message": "User updated successfully"})))
 }
 
-/// DELETE /api/users/:id
 pub async fn delete_user(
     State(state): State<Arc<AppState>>,
     axum::Extension(auth_user): axum::Extension<AuthenticatedUser>,

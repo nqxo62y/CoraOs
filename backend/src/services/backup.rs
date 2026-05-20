@@ -1,7 +1,3 @@
-//! Backup management service.
-//!
-//! Creates compressed tar archives of specified directories and tracks them in the database.
-
 use anyhow::{anyhow, Result};
 use chrono::Utc;
 use sqlx::{Row, SqlitePool};
@@ -12,7 +8,6 @@ use uuid::Uuid;
 
 use crate::models::backup::{Backup, BackupStatus};
 
-/// Create a new backup of the specified paths.
 pub async fn create_backup(
     pool: &SqlitePool,
     name: &str,
@@ -104,7 +99,6 @@ pub async fn create_backup(
     }
 }
 
-/// List all backups from the database.
 pub async fn list_backups(pool: &SqlitePool) -> Result<Vec<Backup>> {
     let rows = sqlx::query(
         "SELECT id, name, file_path, size_bytes, backup_type, status, created_by, created_at \
@@ -127,7 +121,6 @@ pub async fn list_backups(pool: &SqlitePool) -> Result<Vec<Backup>> {
     Ok(backups)
 }
 
-/// Delete a backup by ID (removes both the file and database record).
 pub async fn delete_backup(pool: &SqlitePool, backup_id: &str) -> Result<()> {
     let row = sqlx::query(
         "SELECT file_path, name FROM backups WHERE id = ?"
@@ -154,7 +147,6 @@ pub async fn delete_backup(pool: &SqlitePool, backup_id: &str) -> Result<()> {
     Ok(())
 }
 
-/// Update the status of a backup record.
 async fn update_backup_status(pool: &SqlitePool, id: &str, status: BackupStatus) -> Result<()> {
     sqlx::query("UPDATE backups SET status = ? WHERE id = ?")
         .bind(status.as_str())

@@ -1,7 +1,3 @@
-//! Business logic services.
-//!
-//! Each service encapsulates a domain of functionality.
-
 pub mod audit;
 pub mod auth;
 pub mod backup;

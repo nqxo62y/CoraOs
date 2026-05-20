@@ -1,5 +1,3 @@
-//! Server configuration route handlers.
-
 use std::sync::Arc;
 
 use axum::{extract::State, http::StatusCode, Json};
@@ -11,7 +9,6 @@ use crate::models::system::{ConfigEntry, UpdateConfigRequest};
 use crate::services::audit;
 use crate::AppState;
 
-/// GET /api/config
 pub async fn list_config(
     State(state): State<Arc<AppState>>,
 ) -> Result<Json<Vec<ConfigEntry>>, (StatusCode, Json<Value>)> {
@@ -35,7 +32,6 @@ pub async fn list_config(
     Ok(Json(configs))
 }
 
-/// POST /api/config
 pub async fn update_config(
     State(state): State<Arc<AppState>>,
     axum::Extension(auth_user): axum::Extension<AuthenticatedUser>,

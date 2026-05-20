@@ -1,5 +1,3 @@
-//! Authentication route handlers.
-
 use std::sync::Arc;
 
 use axum::{extract::State, http::StatusCode, Json};
@@ -12,7 +10,6 @@ use crate::models::user::{User, UserResponse};
 use crate::services::{audit, auth as auth_service};
 use crate::AppState;
 
-/// POST /api/auth/login
 pub async fn login(
     State(state): State<Arc<AppState>>,
     Json(payload): Json<LoginRequest>,
@@ -86,7 +83,6 @@ pub async fn login(
     }
 }
 
-/// GET /api/auth/me
 pub async fn me(
     State(state): State<Arc<AppState>>,
     axum::Extension(auth_user): axum::Extension<AuthenticatedUser>,
@@ -128,7 +124,6 @@ pub async fn me(
     }
 }
 
-/// POST /api/auth/logout
 pub async fn logout(
     State(state): State<Arc<AppState>>,
     axum::Extension(auth_user): axum::Extension<AuthenticatedUser>,
