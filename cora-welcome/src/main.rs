@@ -227,9 +227,21 @@ fn main_menu(sys: &mut System) {
             }
             "i" | "I" if is_live_mode() => {
                 clear_screen();
-                println!("\x1b[1;36mLaunching Calamares installer...\x1b[0m\n");
+                println!("\x1b[1;36mLaunching CoraOS Installer...\x1b[0m\n");
+                println!("Starting graphical environment...");
+                // Start X with openbox and launch Calamares inside it
                 let _ = Command::new("sudo")
-                    .args(["calamares"])
+                    .args([
+                        "xinit",
+                        "/bin/bash",
+                        "-c",
+                        "openbox & sleep 1 && calamares",
+                        "--",
+                        ":0",
+                        "vt2",
+                        "-nolisten",
+                        "tcp",
+                    ])
                     .status();
             }
             "0" => {
