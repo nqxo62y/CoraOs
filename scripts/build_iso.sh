@@ -286,6 +286,7 @@ Type=idle
 GETTY_EOF
 
 # Launch cora-welcome on tty1 login
+# Add to both .bashrc and .profile to cover all shell invocation modes
 cat << 'BASHRC_EOF' >> /home/cora/.bashrc
 
 # CoraOS: launch admin console on tty1
@@ -293,7 +294,16 @@ if [ "$(tty)" = "/dev/tty1" ] && [ -x /usr/local/bin/cora-welcome ]; then
     exec /usr/local/bin/cora-welcome
 fi
 BASHRC_EOF
-chown cora:cora /home/cora/.bashrc
+
+cat << 'PROFILE_EOF' >> /home/cora/.profile
+
+# CoraOS: launch admin console on tty1
+if [ "$(tty)" = "/dev/tty1" ] && [ -x /usr/local/bin/cora-welcome ]; then
+    exec /usr/local/bin/cora-welcome
+fi
+PROFILE_EOF
+
+chown cora:cora /home/cora/.bashrc /home/cora/.profile
 
 # Plymouth boot theme
 plymouth-set-default-theme -R coraos
