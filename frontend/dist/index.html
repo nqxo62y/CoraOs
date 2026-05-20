@@ -49,6 +49,7 @@
                 <div class="nav-section">Management</div>
                 <a class="nav-item" data-page="services"></a>
                 <a class="nav-item" data-page="processes"></a>
+                <a class="nav-item" data-page="storage"></a>
                 <a class="nav-item" data-page="logs"></a>
                 <a class="nav-item" data-page="updates"></a>
                 <a class="nav-item" data-page="backups"></a>
@@ -181,6 +182,54 @@
                 </section>
 
                 <!-- Logs -->
+                <section id="page-logs" class="page-section">
+
+                <!-- Storage -->
+                <section id="page-storage" class="page-section">
+                    <div class="page-header">
+                        <div>
+                            <h1 class="page-title">Storage</h1>
+                            <div class="page-subtitle">FTP server, RAID arrays, and mount points</div>
+                        </div>
+                    </div>
+
+                    <!-- FTP Section -->
+                    <div class="info-card" style="margin-bottom:16px;">
+                        <div class="info-card-header" id="ftp-header">FTP Server (vsftpd)</div>
+                        <div id="ftp-content">
+                            <div class="loading-state">Loading FTP status...</div>
+                        </div>
+                    </div>
+
+                    <!-- RAID Section -->
+                    <div class="info-card" style="margin-bottom:16px;">
+                        <div class="info-card-header" id="raid-header">RAID Arrays</div>
+                        <div class="toolbar" style="margin-top:12px;">
+                            <button class="btn btn-primary btn-sm" id="create-raid-btn"></button>
+                        </div>
+                        <div id="raid-content">
+                            <div class="loading-state">Loading RAID status...</div>
+                        </div>
+                    </div>
+
+                    <!-- Mounts Section -->
+                    <div class="info-card">
+                        <div class="info-card-header" id="mounts-header">Mount Points</div>
+                        <div class="toolbar" style="margin-top:12px;">
+                            <button class="btn btn-primary btn-sm" id="mount-device-btn"></button>
+                        </div>
+                        <div class="table-container" style="margin-top:12px;">
+                            <div class="table-scroll">
+                                <table class="data-table">
+                                    <thead><tr><th>Device</th><th>Mount</th><th>FS</th><th>Size</th><th>Used</th><th>Avail</th><th>Use%</th></tr></thead>
+                                    <tbody id="mounts-tbody"></tbody>
+                                </table>
+                            </div>
+                        </div>
+                    </div>
+                </section>
+
+                <!-- Logs (continued) -->
                 <section id="page-logs" class="page-section">
                     <div class="page-header">
                         <div>

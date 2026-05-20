@@ -185,4 +185,55 @@ const API = {
     async updateConfig(key, value, description) {
         return this.request('POST', '/config', { key, value, description });
     },
+
+    // ===== Storage: FTP =====
+    async getFtpStatus() {
+        return this.request('GET', '/storage/ftp');
+    },
+
+    async installFtp() {
+        return this.request('POST', '/storage/ftp/install');
+    },
+
+    async updateFtpConfig(config) {
+        return this.request('POST', '/storage/ftp/config', config);
+    },
+
+    async addFtpUser(username, password, directory) {
+        return this.request('POST', '/storage/ftp/users', { username, password, directory });
+    },
+
+    async deleteFtpUser(name) {
+        return this.request('DELETE', `/storage/ftp/users/${encodeURIComponent(name)}`);
+    },
+
+    // ===== Storage: RAID =====
+    async getRaidArrays() {
+        return this.request('GET', '/storage/raid');
+    },
+
+    async getBlockDevices() {
+        return this.request('GET', '/storage/disks');
+    },
+
+    async createRaid(name, level, devices) {
+        return this.request('POST', '/storage/raid', { name, level, devices });
+    },
+
+    async deleteRaid(name) {
+        return this.request('DELETE', `/storage/raid/${encodeURIComponent(name)}`);
+    },
+
+    // ===== Storage: Mounts =====
+    async getMounts() {
+        return this.request('GET', '/storage/mounts');
+    },
+
+    async mountDevice(device, mount_point, filesystem, options, persistent) {
+        return this.request('POST', '/storage/mount', { device, mount_point, filesystem, options, persistent });
+    },
+
+    async unmountDevice(mount_point) {
+        return this.request('POST', '/storage/unmount', { mount_point });
+    },
 };

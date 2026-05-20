@@ -285,14 +285,15 @@ ExecStart=-/sbin/agetty --autologin cora --noclear %I linux
 Type=idle
 GETTY_EOF
 
-# Launch cora-welcome on login (use .profile for compatibility)
-cat << 'PROFILE_EOF' > /home/cora/.profile
-# Launch CoraOS console menu
-if [ "$(tty)" = "/dev/tty1" ]; then
-    /usr/local/bin/cora-welcome
+# Launch cora-welcome on tty1 login
+cat << 'BASHRC_EOF' >> /home/cora/.bashrc
+
+# CoraOS: launch admin console on tty1
+if [ "$(tty)" = "/dev/tty1" ] && [ -x /usr/local/bin/cora-welcome ]; then
+    exec /usr/local/bin/cora-welcome
 fi
-PROFILE_EOF
-chown cora:cora /home/cora/.profile
+BASHRC_EOF
+chown cora:cora /home/cora/.bashrc
 
 # Plymouth boot theme
 plymouth-set-default-theme -R coraos

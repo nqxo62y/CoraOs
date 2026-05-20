@@ -7,6 +7,7 @@ pub mod backup;
 pub mod config;
 pub mod logs;
 pub mod services;
+pub mod storage;
 pub mod system;
 pub mod updates;
 pub mod users;
@@ -61,6 +62,19 @@ pub fn api_router(state: Arc<AppState>) -> Router {
         .route("/users/:id", axum::routing::delete(users::delete_user))
         // Audit logs
         .route("/audit", get(logs::get_audit_logs))
+        // Storage management (FTP, RAID, Mounts)
+        .route("/storage/ftp", get(storage::ftp_status))
+        .route("/storage/ftp/install", post(storage::ftp_install))
+        .route("/storage/ftp/config", post(storage::ftp_update_config))
+        .route("/storage/ftp/users", post(storage::ftp_add_user))
+        .route("/storage/ftp/users/:name", axum::routing::delete(storage::ftp_delete_user))
+        .route("/storage/raid", get(storage::raid_list))
+        .route("/storage/raid", post(storage::raid_create))
+        .route("/storage/raid/:name", axum::routing::delete(storage::raid_delete))
+        .route("/storage/disks", get(storage::list_block_devices))
+        .route("/storage/mounts", get(storage::list_mounts))
+        .route("/storage/mount", post(storage::mount_device))
+        .route("/storage/unmount", post(storage::unmount_device))
         // WebSocket for real-time updates
         .route("/ws", get(websocket::ws_handler))
         .layer(middleware::from_fn_with_state(

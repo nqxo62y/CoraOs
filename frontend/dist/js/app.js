@@ -37,6 +37,7 @@ const App = {
             overview: { icon: 'dashboard', label: 'Dashboard' },
             services: { icon: 'services', label: 'Services' },
             processes: { icon: 'processes', label: 'Processes' },
+            storage: { icon: 'storage', label: 'Storage' },
             logs: { icon: 'logs', label: 'Logs' },
             updates: { icon: 'updates', label: 'Updates' },
             backups: { icon: 'backups', label: 'Backups' },
@@ -79,6 +80,11 @@ const App = {
         set('create-backup-btn', `${Icons.render('plus', 'icon-sm')}<span>Create Backup</span>`);
         set('create-user-btn', `${Icons.render('plus', 'icon-sm')}<span>Create User</span>`);
         set('add-config-btn', `${Icons.render('plus', 'icon-sm')}<span>Add Entry</span>`);
+        set('create-raid-btn', `${Icons.render('plus', 'icon-sm')}<span>Create RAID</span>`);
+        set('mount-device-btn', `${Icons.render('plus', 'icon-sm')}<span>Mount Device</span>`);
+        set('ftp-header', `${Icons.render('server')}<span>FTP Server (vsftpd)</span>`);
+        set('raid-header', `${Icons.render('disk')}<span>RAID Arrays</span>`);
+        set('mounts-header', `${Icons.render('disk')}<span>Mount Points</span>`);
         set('modal-close', Icons.render('x'));
     },
 
@@ -226,6 +232,7 @@ const App = {
             case 'overview': this.loadOverview(); break;
             case 'services': this.loadServices(); break;
             case 'processes': this.loadProcesses(); break;
+            case 'storage': this.loadStorage(); break;
             case 'logs': this.loadLogs(); break;
             case 'updates': break;
             case 'backups': this.loadBackups(); break;
@@ -823,6 +830,206 @@ const App = {
         } catch (err) {
             this.showToast(err.message, 'error');
         }
+    },
+
+    // ===== Storage =====
+    async loadStorage() {
+        this.loadFtpStatus();
+        this.loadRaid();
+        this.loadMounts();
+
+        // Bind buttons
+        const raidBtn = document.getElementById('create-raid-btn');
+        raidBtn.onclick = () => this.showCreateRaidModal();
+        const mountBtn = document.getElementById('mount-device-btn');
+        mountBtn.onclick = () => this.showMountModal();
+    },
+
+    async loadFtpStatus() {
+        const container = document.getElementById('ftp-content');
+        try {
+            const ftp = await API.getFtpStatus();
+            if (!ftp.installed) {
+                container.innerHTML = `
+                    <p style="color:var(--text-secondary);font-size:13px;margin:12px 0;">vsftpd is not installed.</p>
+                    <button class="btn btn-primary btn-sm" onclick="App.installFtp()">${Icons.render('download','icon-sm')}<span>Install FTP Server</span></button>
+                `;
+            } else {
+                const statusBadge = ftp.running ? '<span class="badge badge-success">Running</span>' : '<span class="badge badge-danger">Stopped</span>';
+                let configHtml = ftp.config.map(c => `<div class="info-row"><span class="label">${c.key}</span><span class="value">${c.value}</span></div>`).join('');
+                let usersHtml = ftp.users.length > 0 ? ftp.users.map(u => `<span class="badge badge-neutral" style="margin:2px;">${u}</span>`).join(' ') : '<span style="color:var(--text-muted)">No FTP users</span>';
+                container.innerHTML = `
+                    <div style="display:flex;align-items:center;gap:12px;margin:12px 0;">
+                        <span style="font-size:13px;color:var(--text-secondary);">Status:</span>${statusBadge}
+                        <button class="btn btn-outline btn-sm" onclick="App.showFtpConfigModal()">Configure</button>
+                        <button class="btn btn-outline btn-sm" onclick="App.showFtpUserModal()">${Icons.render('plus','icon-sm')} Add User</button>
+                    </div>
+                    <div style="margin-top:12px;"><strong style="font-size:12px;color:var(--text-muted);">FTP Users:</strong><div style="margin-top:6px;">${usersHtml}</div></div>
+                    <details style="margin-top:12px;"><summary style="cursor:pointer;font-size:12px;color:var(--text-muted);">Configuration</summary><div style="margin-top:8px;">${configHtml || '<span style="color:var(--text-muted)">No config</span>'}</div></details>
+                `;
+            }
+        } catch (err) {
+            container.innerHTML = `<p style="color:var(--danger);font-size:13px;">Error: ${err.message}</p>`;
+        }
+    },
+
+    async installFtp() {
+        try {
+            await API.installFtp();
+            this.showToast('FTP server installed', 'success');
+            this.loadFtpStatus();
+        } catch (err) { this.showToast(err.message, 'error'); }
+    },
+
+    showFtpConfigModal() {
+        this.openModal('FTP Configuration', `
+            <div class="form-group"><label>Anonymous Access</label><select id="ftp-anon" class="select-input"><option value="false">Disabled</option><option value="true">Enabled</option></select></div>
+            <div class="form-group"><label>Local Users</label><select id="ftp-local" class="select-input"><option value="true">Enabled</option><option value="false">Disabled</option></select></div>
+            <div class="form-group"><label>Write Access</label><select id="ftp-write" class="select-input"><option value="true">Enabled</option><option value="false">Disabled</option></select></div>
+            <div class="form-group"><label>Chroot Users</label><select id="ftp-chroot" class="select-input"><option value="true">Yes</option><option value="false">No</option></select></div>
+            <div class="form-group"><label>Listen Port</label><input type="number" id="ftp-port" value="21" class="search-input"></div>
+            <div class="form-group"><label>PASV Min Port</label><input type="number" id="ftp-pasv-min" value="40000" class="search-input"></div>
+            <div class="form-group"><label>PASV Max Port</label><input type="number" id="ftp-pasv-max" value="40100" class="search-input"></div>
+            <div class="form-group"><label>Max Clients</label><input type="number" id="ftp-max" value="50" class="search-input"></div>
+        `, [
+            { text: 'Cancel', class: 'btn btn-outline', action: () => this.closeModal() },
+            { text: 'Save', class: 'btn btn-primary', action: () => this.saveFtpConfig() },
+        ]);
+    },
+
+    async saveFtpConfig() {
+        const config = {
+            anonymous_enable: document.getElementById('ftp-anon').value === 'true',
+            local_enable: document.getElementById('ftp-local').value === 'true',
+            write_enable: document.getElementById('ftp-write').value === 'true',
+            chroot_local_user: document.getElementById('ftp-chroot').value === 'true',
+            listen_port: parseInt(document.getElementById('ftp-port').value) || 21,
+            pasv_min_port: parseInt(document.getElementById('ftp-pasv-min').value) || 40000,
+            pasv_max_port: parseInt(document.getElementById('ftp-pasv-max').value) || 40100,
+            max_clients: parseInt(document.getElementById('ftp-max').value) || 50,
+        };
+        try {
+            await API.updateFtpConfig(config);
+            this.showToast('FTP configuration saved', 'success');
+            this.closeModal();
+            this.loadFtpStatus();
+        } catch (err) { this.showToast(err.message, 'error'); }
+    },
+
+    showFtpUserModal() {
+        this.openModal('Add FTP User', `
+            <div class="form-group"><label>Username</label><input type="text" id="ftp-user-name" class="search-input" placeholder="ftpuser"></div>
+            <div class="form-group"><label>Password</label><input type="password" id="ftp-user-pass" class="search-input"></div>
+            <div class="form-group"><label>Home Directory (optional)</label><input type="text" id="ftp-user-dir" class="search-input" placeholder="/srv/ftp/username"></div>
+        `, [
+            { text: 'Cancel', class: 'btn btn-outline', action: () => this.closeModal() },
+            { text: 'Create', class: 'btn btn-primary', action: () => this.createFtpUser() },
+        ]);
+    },
+
+    async createFtpUser() {
+        const name = document.getElementById('ftp-user-name').value.trim();
+        const pass = document.getElementById('ftp-user-pass').value;
+        const dir = document.getElementById('ftp-user-dir').value.trim() || undefined;
+        if (!name || !pass) { this.showToast('Username and password required', 'warning'); return; }
+        try {
+            await API.addFtpUser(name, pass, dir);
+            this.showToast(`FTP user '${name}' created`, 'success');
+            this.closeModal();
+            this.loadFtpStatus();
+        } catch (err) { this.showToast(err.message, 'error'); }
+    },
+
+    async loadRaid() {
+        const container = document.getElementById('raid-content');
+        try {
+            const arrays = await API.getRaidArrays();
+            if (arrays.length === 0) {
+                container.innerHTML = '<p style="color:var(--text-muted);font-size:13px;margin:12px 0;">No RAID arrays configured.</p>';
+            } else {
+                container.innerHTML = arrays.map(a => `
+                    <div class="info-row">
+                        <span class="label"><strong>${a.name}</strong> — ${a.level} (${a.active_devices} devices)</span>
+                        <span class="value"><span class="badge badge-success">${a.state}</span></span>
+                    </div>
+                `).join('');
+            }
+        } catch (err) {
+            container.innerHTML = `<p style="color:var(--text-muted);font-size:13px;margin:12px 0;">RAID not available (mdadm not installed or no arrays).</p>`;
+        }
+    },
+
+    showCreateRaidModal() {
+        this.openModal('Create RAID Array', `
+            <div class="form-group"><label>Array Name</label><input type="text" id="raid-name" class="search-input" placeholder="md0"></div>
+            <div class="form-group"><label>RAID Level</label><select id="raid-level" class="select-input"><option value="1">RAID 1 (Mirror)</option><option value="0">RAID 0 (Stripe)</option><option value="5">RAID 5</option><option value="6">RAID 6</option><option value="10">RAID 10</option></select></div>
+            <div class="form-group"><label>Devices (one per line, e.g. /dev/sdb)</label><textarea id="raid-devices" style="width:100%;min-height:80px;padding:8px;background:var(--bg);border:1px solid var(--border);border-radius:var(--radius);color:var(--text);font-family:var(--font-mono);font-size:13px;resize:vertical;" placeholder="/dev/sdb&#10;/dev/sdc"></textarea></div>
+        `, [
+            { text: 'Cancel', class: 'btn btn-outline', action: () => this.closeModal() },
+            { text: 'Create', class: 'btn btn-primary', action: () => this.createRaid() },
+        ]);
+    },
+
+    async createRaid() {
+        const name = document.getElementById('raid-name').value.trim();
+        const level = document.getElementById('raid-level').value;
+        const devices = document.getElementById('raid-devices').value.trim().split('\n').map(d => d.trim()).filter(d => d);
+        if (!name) { this.showToast('Array name required', 'warning'); return; }
+        if (devices.length < 2) { this.showToast('At least 2 devices required', 'warning'); return; }
+        try {
+            const result = await API.createRaid(name, level, devices);
+            this.showToast(result.message, 'success');
+            this.closeModal();
+            this.loadRaid();
+        } catch (err) { this.showToast(err.message, 'error'); }
+    },
+
+    async loadMounts() {
+        const tbody = document.getElementById('mounts-tbody');
+        try {
+            const mounts = await API.getMounts();
+            tbody.innerHTML = mounts.map(m => `
+                <tr>
+                    <td><code>${this.escapeHtml(m.device)}</code></td>
+                    <td>${this.escapeHtml(m.mount_point)}</td>
+                    <td><span class="badge badge-neutral">${m.filesystem}</span></td>
+                    <td>${m.size}</td>
+                    <td>${m.used}</td>
+                    <td>${m.available}</td>
+                    <td>${m.use_percent}</td>
+                </tr>
+            `).join('');
+        } catch (err) {
+            tbody.innerHTML = `<tr><td colspan="7" class="empty-state">Failed to load mounts</td></tr>`;
+        }
+    },
+
+    showMountModal() {
+        this.openModal('Mount Device', `
+            <div class="form-group"><label>Device</label><input type="text" id="mount-dev" class="search-input" placeholder="/dev/sdb1"></div>
+            <div class="form-group"><label>Mount Point</label><input type="text" id="mount-point" class="search-input" placeholder="/mnt/data"></div>
+            <div class="form-group"><label>Filesystem</label><select id="mount-fs" class="select-input"><option value="ext4">ext4</option><option value="xfs">xfs</option><option value="btrfs">btrfs</option><option value="ntfs">ntfs</option><option value="vfat">vfat</option></select></div>
+            <div class="form-group"><label>Options</label><input type="text" id="mount-opts" class="search-input" placeholder="defaults"></div>
+            <div class="form-group"><label><input type="checkbox" id="mount-persist" checked> Add to /etc/fstab (persistent)</label></div>
+        `, [
+            { text: 'Cancel', class: 'btn btn-outline', action: () => this.closeModal() },
+            { text: 'Mount', class: 'btn btn-primary', action: () => this.doMount() },
+        ]);
+    },
+
+    async doMount() {
+        const device = document.getElementById('mount-dev').value.trim();
+        const mount_point = document.getElementById('mount-point').value.trim();
+        const filesystem = document.getElementById('mount-fs').value;
+        const options = document.getElementById('mount-opts').value.trim() || 'defaults';
+        const persistent = document.getElementById('mount-persist').checked;
+        if (!device || !mount_point) { this.showToast('Device and mount point required', 'warning'); return; }
+        try {
+            const result = await API.mountDevice(device, mount_point, filesystem, options, persistent);
+            this.showToast(result.message, 'success');
+            this.closeModal();
+            this.loadMounts();
+        } catch (err) { this.showToast(err.message, 'error'); }
     },
 
     // ===== Theme =====
