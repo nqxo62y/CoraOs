@@ -31,8 +31,8 @@ pub struct AppState {
 
 #[tokio::main]
 async fn main() -> anyhow::Result<()> {
-    // Load environment variables from .env if present
-    dotenvy::dotenv().ok();
+    // Load environment variables from .env if present (optional)
+    let _ = dotenvy::dotenv();
 
     // Initialize logging
     config::logging::init_logging();

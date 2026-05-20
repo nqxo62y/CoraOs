@@ -101,13 +101,6 @@ chmod +x "${CHROOT_DIR}/usr/local/bin/coraos-backend"
 mkdir -p "${CHROOT_DIR}/opt/coraos/frontend/dist"
 cp -r frontend/dist/* "${CHROOT_DIR}/opt/coraos/frontend/dist/"
 
-# Environment config
-cp .env.example "${CHROOT_DIR}/opt/coraos/.env"
-sed -i 's|../data/coraos.db|/opt/coraos/data/coraos.db|g' "${CHROOT_DIR}/opt/coraos/.env"
-sed -i 's|../backups|/opt/coraos/backups|g' "${CHROOT_DIR}/opt/coraos/.env"
-sed -i 's|../logs|/opt/coraos/logs|g' "${CHROOT_DIR}/opt/coraos/.env"
-sed -i 's|../frontend/dist|/opt/coraos/frontend/dist|g' "${CHROOT_DIR}/opt/coraos/.env"
-
 # Create data directories
 mkdir -p "${CHROOT_DIR}/opt/coraos/data"
 mkdir -p "${CHROOT_DIR}/opt/coraos/backups"
@@ -118,8 +111,9 @@ cp config/coraos.service "${CHROOT_DIR}/etc/systemd/system/coraos.service"
 # Fix paths in service file for this layout
 sed -i 's|/opt/coraos/backend/coraos-backend|/usr/local/bin/coraos-backend|g' "${CHROOT_DIR}/etc/systemd/system/coraos.service"
 sed -i 's|WorkingDirectory=.*|WorkingDirectory=/opt/coraos|g' "${CHROOT_DIR}/etc/systemd/system/coraos.service"
-sed -i 's|EnvironmentFile=.*|EnvironmentFile=/opt/coraos/.env|g' "${CHROOT_DIR}/etc/systemd/system/coraos.service"
 sed -i 's|ReadWritePaths=.*|ReadWritePaths=/opt/coraos/data /opt/coraos/backups /opt/coraos/logs|g' "${CHROOT_DIR}/etc/systemd/system/coraos.service"
+# Remove EnvironmentFile line since backend auto-configures
+sed -i '/EnvironmentFile/d' "${CHROOT_DIR}/etc/systemd/system/coraos.service"
 
 # Plymouth boot theme
 PLYMOUTH_THEME_DIR="${CHROOT_DIR}/usr/share/plymouth/themes/coraos"
@@ -199,10 +193,6 @@ chown cora:cora /home/cora/.bash_profile
 
 # Plymouth boot theme
 plymouth-set-default-theme -R coraos
-
-# Generate JWT secret
-JWT_SECRET=$(head -c 64 /dev/urandom | od -An -tx1 | tr -d ' \n')
-sed -i "s/change_this_to_a_random_64_char_hex_string/${JWT_SECRET}/" /opt/coraos/.env
 
 apt-get clean
 rm -rf /var/lib/apt/lists/*
