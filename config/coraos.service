@@ -1,0 +1,25 @@
+[Unit]
+Description=CoraOS Server Management Platform
+After=network.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+User=coraos
+Group=coraos
+WorkingDirectory=/opt/coraos/backend
+ExecStart=/opt/coraos/backend/coraos-backend
+Restart=always
+RestartSec=5
+Environment=RUST_LOG=coraos_backend=info,tower_http=info
+EnvironmentFile=-/opt/coraos/.env
+
+# Security hardening
+NoNewPrivileges=true
+ProtectSystem=strict
+ProtectHome=true
+ReadWritePaths=/opt/coraos/data /opt/coraos/backups /opt/coraos/logs
+PrivateTmp=true
+
+[Install]
+WantedBy=multi-user.target

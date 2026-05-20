@@ -1,4 +1,4 @@
-name: Build CoraOS ISO
+name: Build CoraOS
 
 on:
   push:
@@ -8,8 +8,8 @@ on:
   workflow_dispatch:
 
 jobs:
-  build:
-    name: Build Live ISO
+  build-backend:
+    name: Build Backend
     runs-on: ubuntu-latest
 
     steps:
@@ -22,22 +22,64 @@ jobs:
           path: |
             ~/.cargo/registry
             ~/.cargo/git
-            cora-welcome/target
-          key: ${{ runner.os }}-cargo-${{ hashFiles('cora-welcome/Cargo.toml') }}
+            backend/target
+          key: ${{ runner.os }}-cargo-backend-${{ hashFiles('backend/Cargo.toml') }}
           restore-keys: |
-            ${{ runner.os }}-cargo-
+            ${{ runner.os }}-cargo-backend-
 
       - name: Set up Rust Toolchain
         uses: actions-rust-lang/setup-rust-toolchain@v1
         with:
           toolchain: stable
 
+      - name: Build Backend (Release)
+        run: cargo build --release
+        working-directory: backend
+
+      - name: Upload Backend Binary
+        uses: actions/upload-artifact@v4
+        with:
+          name: coraos-backend
+          path: backend/target/release/coraos-backend
+          if-no-files-found: error
+          retention-days: 7
+
+  build-iso:
+    name: Build Live ISO
+    runs-on: ubuntu-latest
+    needs: build-backend
+
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+
+      - name: Cache Cargo Dependencies
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.cargo/registry
+            ~/.cargo/git
+            cora-welcome/target
+          key: ${{ runner.os }}-cargo-welcome-${{ hashFiles('cora-welcome/Cargo.toml') }}
+          restore-keys: |
+            ${{ runner.os }}-cargo-welcome-
+
+      - name: Set up Rust Toolchain
+        uses: actions-rust-lang/setup-rust-toolchain@v1
+        with:
+          toolchain: stable
+
+      - name: Download Backend Binary
+        uses: actions/download-artifact@v4
+        with:
+          name: coraos-backend
+          path: backend-bin/
+
       - name: Make Build Script Executable
         run: chmod +x scripts/build_iso.sh
 
       - name: Build CoraOS Hybrid Live ISO
-        run: |
-          sudo ./scripts/build_iso.sh
+        run: sudo ./scripts/build_iso.sh
 
       - name: Upload CoraOS ISO Artifact
         uses: actions/upload-artifact@v4
@@ -47,3 +89,33 @@ jobs:
           if-no-files-found: error
           retention-days: 7
 
+  build-release:
+    name: Package Release
+    runs-on: ubuntu-latest
+    needs: build-backend
+
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+
+      - name: Download Backend Binary
+        uses: actions/download-artifact@v4
+        with:
+          name: coraos-backend
+          path: release/backend/
+
+      - name: Package Release Archive
+        run: |
+          mkdir -p release/frontend/dist
+          cp -r frontend/dist/* release/frontend/dist/
+          cp -r config release/config
+          cp .env.example release/.env.example
+          cp README.md release/ 2>/dev/null || true
+          cd release && tar -czf ../coraos-release.tar.gz .
+
+      - name: Upload Release Archive
+        uses: actions/upload-artifact@v4
+        with:
+          name: coraos-release
+          path: coraos-release.tar.gz
+          retention-days: 7

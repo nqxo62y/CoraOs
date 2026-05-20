@@ -1,6 +1,11 @@
 # Rust build targets
+backend/target/
 cora-welcome/target/
 cora-welcome/Cargo.lock
+backend/Cargo.lock
+
+# Database
+data/
 
 # Operating System build outputs
 /chroot/
@@ -8,8 +13,17 @@ cora-welcome/Cargo.lock
 /coraos.iso
 /logo/logo.png
 
+# Environment files
+.env
+
 # OS metadata & local editor settings
 .vscode/
 .idea/
 *.swp
 *.log
+
+# Backup files (generated at runtime)
+backups/
+
+# Log files (generated at runtime)
+logs/

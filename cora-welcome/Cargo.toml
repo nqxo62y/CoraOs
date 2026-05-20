@@ -2,9 +2,12 @@
 name = "cora-welcome"
 version = "0.1.0"
 edition = "2021"
-authors = ["CoraOS Developers"]
-description = "System management and welcome dashboard for CoraOS"
+description = "Console admin menu for CoraOS"
 
 [dependencies]
-crossterm = "0.27"
 sysinfo = "0.30"
+
+[profile.release]
+lto = "thin"
+codegen-units = 1
+strip = true
