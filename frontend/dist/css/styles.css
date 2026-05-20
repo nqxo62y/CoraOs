@@ -117,9 +117,10 @@ a {
     margin-bottom: 16px;
 }
 
-.login-logo .logo-icon svg {
-    width: 80px;
-    height: 80px;
+.login-logo .logo-icon .logo-img {
+    width: 96px;
+    height: 96px;
+    border-radius: 20px;
     filter: drop-shadow(0 4px 12px rgba(99, 102, 241, 0.3));
 }
 
@@ -251,8 +252,20 @@ a {
     border-bottom: 1px solid var(--border);
 }
 
-.sidebar-logo {
-    font-size: 20px;
+.sidebar-brand {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+.sidebar-logo-img {
+    width: 32px;
+    height: 32px;
+    border-radius: 6px;
+}
+
+.sidebar-logo-text {
+    font-size: 18px;
     font-weight: 700;
     color: var(--accent);
 }
