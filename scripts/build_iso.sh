@@ -276,34 +276,37 @@ echo "cora:cora" | chpasswd
 usermod -aG sudo cora
 echo "cora ALL=(ALL) NOPASSWD:ALL" >> /etc/sudoers
 
-# Auto-login on tty1
-mkdir -p /etc/systemd/system/getty@tty1.service.d
-cat << 'GETTY_EOF' > /etc/systemd/system/getty@tty1.service.d/override.conf
+# Run cora-welcome directly on tty1 via systemd (no login shell needed)
+# This completely bypasses any shell profile issues from live-config
+mkdir -p /etc/systemd/system
+cat << 'CORATTY_EOF' > /etc/systemd/system/coraos-console.service
+[Unit]
+Description=CoraOS Console Menu
+After=multi-user.target
+Conflicts=getty@tty1.service
+
 [Service]
-ExecStart=
-ExecStart=-/sbin/agetty --autologin cora --noclear %I linux
-Type=idle
-GETTY_EOF
+ExecStart=/usr/local/bin/cora-welcome
+StandardInput=tty
+StandardOutput=tty
+TTYPath=/dev/tty1
+TTYReset=yes
+TTYVHangup=yes
+TTYVTDisallocate=yes
+User=cora
+Environment=TERM=linux HOME=/home/cora
+Restart=always
+RestartSec=1
+UtmpIdentifier=tty1
+UtmpMode=user
 
-# Launch cora-welcome on tty1 login
-# Add to both .bashrc and .profile to cover all shell invocation modes
-cat << 'BASHRC_EOF' >> /home/cora/.bashrc
+[Install]
+WantedBy=multi-user.target
+CORATTY_EOF
 
-# CoraOS: launch admin console on tty1
-if [ "$(tty)" = "/dev/tty1" ] && [ -x /usr/local/bin/cora-welcome ]; then
-    exec /usr/local/bin/cora-welcome
-fi
-BASHRC_EOF
-
-cat << 'PROFILE_EOF' >> /home/cora/.profile
-
-# CoraOS: launch admin console on tty1
-if [ "$(tty)" = "/dev/tty1" ] && [ -x /usr/local/bin/cora-welcome ]; then
-    exec /usr/local/bin/cora-welcome
-fi
-PROFILE_EOF
-
-chown cora:cora /home/cora/.bashrc /home/cora/.profile
+# Disable default getty on tty1, enable our console service
+systemctl disable getty@tty1.service 2>/dev/null || true
+systemctl enable coraos-console.service
 
 # Plymouth boot theme
 plymouth-set-default-theme -R coraos
