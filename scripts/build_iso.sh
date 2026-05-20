@@ -433,7 +433,42 @@ rm -f "${CHROOT}/tmp/setup.sh"
 SUCCESS "Chroot configuration complete."
 
 # Overwrite Calamares configs with our custom ones (after package install)
-INFO "Writing Calamares configuration..."
+INFO "Writing final Calamares configuration..."
+# Re-apply our settings.conf (calamares-settings-debian may have overwritten it)
+cat > "${CHROOT}/etc/calamares/settings.conf" << 'CALEOF'
+modules-search: [ local, /usr/lib/calamares/modules ]
+sequence:
+  - show:
+    - welcome
+    - locale
+    - keyboard
+    - partition
+    - users
+    - summary
+  - exec:
+    - partition
+    - mount
+    - unpackfs
+    - machineid
+    - fstab
+    - locale
+    - keyboard
+    - localecfg
+    - users
+    - networkcfg
+    - hwclock
+    - services-systemd
+    - grubcfg
+    - bootloader
+    - umount
+  - show:
+    - finished
+branding: coraos
+prompt-install: true
+dont-chroot: false
+CALEOF
+
+mkdir -p "${CHROOT}/etc/calamares/branding/coraos"
 cp logo/logo.png "${CHROOT}/etc/calamares/branding/coraos/logo.png" 2>/dev/null || true
 
 cleanup
