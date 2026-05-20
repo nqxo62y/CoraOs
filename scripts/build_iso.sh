@@ -142,16 +142,6 @@ Environment=RUST_LOG=coraos_backend=info,tower_http=info
 WantedBy=multi-user.target
 SVCEOF
 
-# Sudoers rules so the backend can manage system services and apt without a password
-cat << 'SUDOEOF' > "${CHROOT_DIR}/etc/sudoers.d/coraos"
-# Allow coraos backend to manage services, apt updates, and tar backups
-coraos ALL=(root) NOPASSWD: /bin/systemctl, /usr/bin/systemctl
-coraos ALL=(root) NOPASSWD: /usr/bin/apt-get, /usr/bin/apt
-coraos ALL=(root) NOPASSWD: /bin/journalctl, /usr/bin/journalctl
-coraos ALL=(root) NOPASSWD: /bin/tar, /usr/bin/tar
-SUDOEOF
-chmod 440 "${CHROOT_DIR}/etc/sudoers.d/coraos"
-
 # Plymouth boot theme
 PLYMOUTH_THEME_DIR="${CHROOT_DIR}/usr/share/plymouth/themes/coraos"
 mkdir -p "${PLYMOUTH_THEME_DIR}"
@@ -270,6 +260,15 @@ systemctl enable coraos.service
 # Create system user for the backend
 useradd --system --no-create-home --shell /usr/sbin/nologin coraos 2>/dev/null || true
 chown -R coraos:coraos /opt/coraos
+
+# Sudoers rules for the backend to manage system services
+cat > /etc/sudoers.d/coraos << 'SUDOEOF'
+coraos ALL=(root) NOPASSWD: /bin/systemctl, /usr/bin/systemctl
+coraos ALL=(root) NOPASSWD: /usr/bin/apt-get, /usr/bin/apt
+coraos ALL=(root) NOPASSWD: /bin/journalctl, /usr/bin/journalctl
+coraos ALL=(root) NOPASSWD: /bin/tar, /usr/bin/tar
+SUDOEOF
+chmod 440 /etc/sudoers.d/coraos
 
 # Create interactive user
 useradd -m -s /bin/bash cora
