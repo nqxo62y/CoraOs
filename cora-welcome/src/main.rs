@@ -192,8 +192,11 @@ fn main_menu(sys: &mut System) {
         println!("  [7] Interactive shell (bash)");
         println!("  [8] Network TUI (nmtui)");
         println!("  [9] Power");
+        if is_live_mode() {
+            println!("  [i] Install CoraOS to Disk");
+        }
         println!("  [0] Exit");
-        print!("\n  Choice [0-9]: ");
+        print!("\n  Choice: ");
         let _ = io::stdout().flush();
 
         let mut choice = String::new();
@@ -222,6 +225,12 @@ fn main_menu(sys: &mut System) {
                     break;
                 }
             }
+            "i" | "I" if is_live_mode() => {
+                clear_screen();
+                let _ = Command::new("sudo")
+                    .args(["coraos-installer"])
+                    .status();
+            }
             "0" => {
                 clear_screen();
                 break;
@@ -229,6 +238,11 @@ fn main_menu(sys: &mut System) {
             _ => {}
         }
     }
+}
+
+/// Check if we're running in live mode (live-boot)
+fn is_live_mode() -> bool {
+    std::path::Path::new("/run/live/medium").exists()
 }
 
 fn main() {

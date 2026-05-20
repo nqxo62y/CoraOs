@@ -1,10 +1,11 @@
 #!/bin/bash
 #
 # CoraOS ISO Build Script
-# Builds a bootable Debian live ISO containing:
-#   - Apache2 serving the dashboard on port 80
-#   - coraos-backend API on port 8080 (proxied by Apache)
-#   - cora-welcome console utility on tty1
+# Builds a bootable Debian ISO with:
+#   - Live mode (try without installing)
+#   - Install mode (real disk installer with setup wizard)
+#   - Apache2 + Rust backend + dashboard
+#   - Console admin utility
 #   - Custom Plymouth boot splash
 #
 
@@ -98,26 +99,48 @@ chmod +x "${CHROOT_DIR}/usr/local/bin/cora-welcome"
 cp backend/target/release/coraos-backend "${CHROOT_DIR}/usr/local/bin/"
 chmod +x "${CHROOT_DIR}/usr/local/bin/coraos-backend"
 
+# Installer script
+cp scripts/installer.sh "${CHROOT_DIR}/usr/local/bin/coraos-installer"
+chmod +x "${CHROOT_DIR}/usr/local/bin/coraos-installer"
+
 # Frontend static files (served by Apache)
 mkdir -p "${CHROOT_DIR}/var/www/coraos"
 cp -r frontend/dist/* "${CHROOT_DIR}/var/www/coraos/"
 
-# Backend data directories
+# Backend working directory
 mkdir -p "${CHROOT_DIR}/opt/coraos/data"
 mkdir -p "${CHROOT_DIR}/opt/coraos/backups"
 mkdir -p "${CHROOT_DIR}/opt/coraos/logs"
 mkdir -p "${CHROOT_DIR}/opt/coraos/frontend/dist"
-
-# Symlink so backend can also find frontend if needed
-ln -sf /var/www/coraos "${CHROOT_DIR}/opt/coraos/frontend/dist" 2>/dev/null || \
-  cp -r frontend/dist/* "${CHROOT_DIR}/opt/coraos/frontend/dist/"
+cp -r frontend/dist/* "${CHROOT_DIR}/opt/coraos/frontend/dist/"
 
 # systemd service for the backend API
-cp config/coraos.service "${CHROOT_DIR}/etc/systemd/system/coraos.service"
-sed -i 's|/opt/coraos/backend/coraos-backend|/usr/local/bin/coraos-backend|g' "${CHROOT_DIR}/etc/systemd/system/coraos.service"
-sed -i 's|WorkingDirectory=.*|WorkingDirectory=/opt/coraos|g' "${CHROOT_DIR}/etc/systemd/system/coraos.service"
-sed -i 's|ReadWritePaths=.*|ReadWritePaths=/opt/coraos/data /opt/coraos/backups /opt/coraos/logs|g' "${CHROOT_DIR}/etc/systemd/system/coraos.service"
-sed -i '/EnvironmentFile/d' "${CHROOT_DIR}/etc/systemd/system/coraos.service"
+cat << 'SVCEOF' > "${CHROOT_DIR}/etc/systemd/system/coraos.service"
+[Unit]
+Description=CoraOS Server Management Platform
+After=network.target apache2.service
+Wants=network-online.target
+
+[Service]
+Type=simple
+User=coraos
+Group=coraos
+WorkingDirectory=/opt/coraos
+ExecStart=/usr/local/bin/coraos-backend
+Restart=always
+RestartSec=5
+Environment=RUST_LOG=coraos_backend=info,tower_http=info
+
+# Security hardening
+NoNewPrivileges=true
+ProtectSystem=strict
+ProtectHome=true
+ReadWritePaths=/opt/coraos/data /opt/coraos/backups /opt/coraos/logs
+PrivateTmp=true
+
+[Install]
+WantedBy=multi-user.target
+SVCEOF
 
 # Plymouth boot theme
 PLYMOUTH_THEME_DIR="${CHROOT_DIR}/usr/share/plymouth/themes/coraos"
@@ -137,25 +160,24 @@ cat << 'APACHECONF' > "${CHROOT_DIR}/etc/apache2/sites-available/coraos.conf"
     ServerName coraos
     DocumentRoot /var/www/coraos
 
-    # Serve frontend static files directly
     <Directory /var/www/coraos>
         Options -Indexes +FollowSymLinks
         AllowOverride None
         Require all granted
     </Directory>
 
-    # Proxy API requests to the Rust backend
+    # Proxy API to Rust backend
     ProxyPreserveHost On
     ProxyPass /api http://127.0.0.1:8080/api
     ProxyPassReverse /api http://127.0.0.1:8080/api
 
-    # WebSocket proxy for real-time updates
+    # WebSocket proxy
     RewriteEngine On
     RewriteCond %{HTTP:Upgrade} websocket [NC]
     RewriteCond %{HTTP:Connection} upgrade [NC]
     RewriteRule ^/api/ws$ ws://127.0.0.1:8080/api/ws [P,L]
 
-    # SPA fallback: serve index.html for any route not matching a file
+    # SPA fallback
     RewriteCond %{REQUEST_URI} !^/api
     RewriteCond %{DOCUMENT_ROOT}%{REQUEST_URI} !-f
     RewriteCond %{DOCUMENT_ROOT}%{REQUEST_URI} !-d
@@ -195,6 +217,7 @@ apt-get install -y --no-install-recommends \
   systemd-sysv \
   grub-common \
   grub-pc-bin \
+  grub-efi-amd64-bin \
   plymouth \
   plymouth-themes \
   sudo \
@@ -205,9 +228,14 @@ apt-get install -y --no-install-recommends \
   util-linux \
   console-setup \
   dbus \
-  apache2
+  apache2 \
+  parted \
+  dosfstools \
+  e2fsprogs \
+  squashfs-tools \
+  os-prober
 
-# Enable Apache modules needed for reverse proxy and rewrite
+# Enable Apache modules
 a2enmod proxy
 a2enmod proxy_http
 a2enmod proxy_wstunnel
@@ -232,7 +260,7 @@ echo "cora:cora" | chpasswd
 usermod -aG sudo cora
 echo "cora ALL=(ALL) NOPASSWD:ALL" >> /etc/sudoers
 
-# Auto-login on tty1 with cora-welcome
+# Auto-login on tty1
 mkdir -p /etc/systemd/system/getty@tty1.service.d
 cat << 'GETTY_EOF' > /etc/systemd/system/getty@tty1.service.d/override.conf
 [Service]
@@ -280,26 +308,77 @@ INFO "Creating bootloader configuration..."
 mkdir -p "${IMAGE_DIR}/boot/grub"
 cat << 'EOF' > "${IMAGE_DIR}/boot/grub/grub.cfg"
 set default="0"
-set timeout=3
+set timeout=10
 
 insmod all_video
 
-menuentry "CoraOS Live (GNU/Linux Debian-based)" {
+menuentry "CoraOS - Install to Disk" {
+    linux /live/vmlinuz boot=live quiet splash plymouth.ignore-serial-consoles vt.global_cursor_default=0 systemd.unit=multi-user.target coraos.install=1
+    initrd /live/initrd.img
+}
+
+menuentry "CoraOS - Live Mode (try without installing)" {
     linux /live/vmlinuz boot=live quiet splash plymouth.ignore-serial-consoles vt.global_cursor_default=0
+    initrd /live/initrd.img
+}
+
+menuentry "CoraOS - Live Mode (safe graphics)" {
+    linux /live/vmlinuz boot=live quiet splash nomodeset plymouth.ignore-serial-consoles vt.global_cursor_default=0
     initrd /live/initrd.img
 }
 EOF
 SUCCESS "GRUB configuration created."
 
+# Add a hook so the installer auto-launches when booted with coraos.install=1
+mkdir -p "${CHROOT_DIR}/etc/systemd/system"
+cat << 'INSTALLSVC' > "${CHROOT_DIR}/etc/systemd/system/coraos-autoinstall.service"
+[Unit]
+Description=CoraOS Auto-Launch Installer
+After=multi-user.target
+ConditionKernelCommandLine=coraos.install=1
+
+[Service]
+Type=oneshot
+ExecStart=/usr/local/bin/coraos-installer
+StandardInput=tty
+StandardOutput=tty
+TTYPath=/dev/tty1
+TTYReset=yes
+TTYVHangup=yes
+
+[Install]
+WantedBy=multi-user.target
+INSTALLSVC
+
+# Enable the auto-install service in the squashfs
+# We need to re-mount and add the symlink
+mount --bind /dev "${CHROOT_DIR}/dev"
+mount --bind /proc "${CHROOT_DIR}/proc"
+mount --bind /sys "${CHROOT_DIR}/sys"
+chroot "${CHROOT_DIR}" systemctl enable coraos-autoinstall.service
+umount "${CHROOT_DIR}/dev" 2>/dev/null || true
+umount "${CHROOT_DIR}/proc" 2>/dev/null || true
+umount "${CHROOT_DIR}/sys" 2>/dev/null || true
+
+# Rebuild squashfs with the installer service enabled
+INFO "Rebuilding SquashFS with installer service..."
+rm -f "${IMAGE_DIR}/live/filesystem.squashfs"
+mksquashfs "${CHROOT_DIR}" "${IMAGE_DIR}/live/filesystem.squashfs" -comp xz -e boot
+SUCCESS "Final SquashFS generated."
+
 INFO "Compiling bootable hybrid UEFI/BIOS ISO..."
 grub-mkrescue -o "${ISO_NAME}" "${IMAGE_DIR}"
 
-SUCCESS "=========================================================="
+SUCCESS "═══════════════════════════════════════════════════════════"
 SUCCESS " CoraOS ISO generated: ${WORKDIR}/${ISO_NAME}"
-SUCCESS " "
-SUCCESS " Access the dashboard: http://<server-ip>"
-SUCCESS " Console admin: auto-starts on tty1"
-SUCCESS " "
-SUCCESS " Apache2 serves frontend on port 80"
-SUCCESS " Backend API runs on port 8080 (proxied via /api)"
-SUCCESS "=========================================================="
+SUCCESS ""
+SUCCESS " Boot menu options:"
+SUCCESS "   1. Install to Disk  - Full setup wizard"
+SUCCESS "   2. Live Mode        - Try without installing"
+SUCCESS "   3. Safe Graphics    - For compatibility"
+SUCCESS ""
+SUCCESS " After installation:"
+SUCCESS "   Dashboard: http://<server-ip>"
+SUCCESS "   Console:   auto-login on tty1"
+SUCCESS "   SSH:       cora / cora"
+SUCCESS "═══════════════════════════════════════════════════════════"
