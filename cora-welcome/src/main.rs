@@ -228,7 +228,7 @@ fn main_menu(sys: &mut System) {
             "i" | "I" if is_live_mode() => {
                 clear_screen();
                 let _ = Command::new("sudo")
-                    .args(["coraos-installer"])
+                    .args(["coraos-installer-gui"])
                     .status();
             }
             "0" => {

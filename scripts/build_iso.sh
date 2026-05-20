@@ -99,9 +99,16 @@ chmod +x "${CHROOT_DIR}/usr/local/bin/cora-welcome"
 cp backend/target/release/coraos-backend "${CHROOT_DIR}/usr/local/bin/"
 chmod +x "${CHROOT_DIR}/usr/local/bin/coraos-backend"
 
-# Installer script
+# Installer scripts
 cp scripts/installer.sh "${CHROOT_DIR}/usr/local/bin/coraos-installer"
 chmod +x "${CHROOT_DIR}/usr/local/bin/coraos-installer"
+
+cp scripts/coraos-installer-gui "${CHROOT_DIR}/usr/local/bin/coraos-installer-gui"
+chmod +x "${CHROOT_DIR}/usr/local/bin/coraos-installer-gui"
+
+mkdir -p "${CHROOT_DIR}/usr/local/share/coraos"
+cp scripts/installer-gui.py "${CHROOT_DIR}/usr/local/share/coraos/installer-gui.py"
+chmod +x "${CHROOT_DIR}/usr/local/share/coraos/installer-gui.py"
 
 # Frontend static files (served by Apache)
 mkdir -p "${CHROOT_DIR}/var/www/coraos"
@@ -233,7 +240,14 @@ apt-get install -y --no-install-recommends \
   dosfstools \
   e2fsprogs \
   squashfs-tools \
-  os-prober
+  os-prober \
+  python3 \
+  python3-gi \
+  gir1.2-gtk-3.0 \
+  xorg \
+  xinit \
+  openbox \
+  dbus-x11
 
 # Enable Apache modules
 a2enmod proxy
@@ -333,18 +347,19 @@ SUCCESS "GRUB configuration created."
 mkdir -p "${CHROOT_DIR}/etc/systemd/system"
 cat << 'INSTALLSVC' > "${CHROOT_DIR}/etc/systemd/system/coraos-autoinstall.service"
 [Unit]
-Description=CoraOS Auto-Launch Installer
+Description=CoraOS GUI Installer
 After=multi-user.target
 ConditionKernelCommandLine=coraos.install=1
 
 [Service]
-Type=oneshot
-ExecStart=/usr/local/bin/coraos-installer
+Type=simple
+ExecStart=/usr/local/bin/coraos-installer-gui
 StandardInput=tty
 StandardOutput=tty
 TTYPath=/dev/tty1
 TTYReset=yes
 TTYVHangup=yes
+Environment=DISPLAY=:0
 
 [Install]
 WantedBy=multi-user.target

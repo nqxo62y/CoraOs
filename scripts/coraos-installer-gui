@@ -1,0 +1,8 @@
+#!/bin/bash
+# CoraOS GUI Installer Launcher
+# Starts X server and runs the GTK installer
+
+# Start X with openbox as window manager, then launch installer
+exec xinit /bin/bash -c "openbox &
+sleep 1
+python3 /usr/local/share/coraos/installer-gui.py" -- :0 vt1 -nolisten tcp
