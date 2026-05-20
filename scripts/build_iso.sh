@@ -2,9 +2,10 @@
 #
 # CoraOS ISO Build Script
 # Builds a bootable Debian live ISO containing:
-#   - cora-welcome console utility
-#   - coraos-backend web management platform
-#   - frontend dashboard (served by backend)
+#   - Apache2 serving the dashboard on port 80
+#   - coraos-backend API on port 8080 (proxied by Apache)
+#   - cora-welcome console utility on tty1
+#   - Custom Plymouth boot splash
 #
 
 set -e
@@ -97,22 +98,25 @@ chmod +x "${CHROOT_DIR}/usr/local/bin/cora-welcome"
 cp backend/target/release/coraos-backend "${CHROOT_DIR}/usr/local/bin/"
 chmod +x "${CHROOT_DIR}/usr/local/bin/coraos-backend"
 
-# Frontend static files
-mkdir -p "${CHROOT_DIR}/opt/coraos/frontend/dist"
-cp -r frontend/dist/* "${CHROOT_DIR}/opt/coraos/frontend/dist/"
+# Frontend static files (served by Apache)
+mkdir -p "${CHROOT_DIR}/var/www/coraos"
+cp -r frontend/dist/* "${CHROOT_DIR}/var/www/coraos/"
 
-# Create data directories
+# Backend data directories
 mkdir -p "${CHROOT_DIR}/opt/coraos/data"
 mkdir -p "${CHROOT_DIR}/opt/coraos/backups"
 mkdir -p "${CHROOT_DIR}/opt/coraos/logs"
+mkdir -p "${CHROOT_DIR}/opt/coraos/frontend/dist"
 
-# systemd service for the web platform
+# Symlink so backend can also find frontend if needed
+ln -sf /var/www/coraos "${CHROOT_DIR}/opt/coraos/frontend/dist" 2>/dev/null || \
+  cp -r frontend/dist/* "${CHROOT_DIR}/opt/coraos/frontend/dist/"
+
+# systemd service for the backend API
 cp config/coraos.service "${CHROOT_DIR}/etc/systemd/system/coraos.service"
-# Fix paths in service file for this layout
 sed -i 's|/opt/coraos/backend/coraos-backend|/usr/local/bin/coraos-backend|g' "${CHROOT_DIR}/etc/systemd/system/coraos.service"
 sed -i 's|WorkingDirectory=.*|WorkingDirectory=/opt/coraos|g' "${CHROOT_DIR}/etc/systemd/system/coraos.service"
 sed -i 's|ReadWritePaths=.*|ReadWritePaths=/opt/coraos/data /opt/coraos/backups /opt/coraos/logs|g' "${CHROOT_DIR}/etc/systemd/system/coraos.service"
-# Remove EnvironmentFile line since backend auto-configures
 sed -i '/EnvironmentFile/d' "${CHROOT_DIR}/etc/systemd/system/coraos.service"
 
 # Plymouth boot theme
@@ -122,6 +126,45 @@ cp logo/logo.png "${PLYMOUTH_THEME_DIR}/logo.png"
 cp plymouth/dot.png "${PLYMOUTH_THEME_DIR}/dot.png"
 cp plymouth/coraos.plymouth "${PLYMOUTH_THEME_DIR}/coraos.plymouth"
 cp plymouth/coraos.script "${PLYMOUTH_THEME_DIR}/coraos.script"
+
+# ============================================================
+# Apache2 virtual host configuration
+# ============================================================
+INFO "Creating Apache2 configuration..."
+mkdir -p "${CHROOT_DIR}/etc/apache2/sites-available"
+cat << 'APACHECONF' > "${CHROOT_DIR}/etc/apache2/sites-available/coraos.conf"
+<VirtualHost *:80>
+    ServerName coraos
+    DocumentRoot /var/www/coraos
+
+    # Serve frontend static files directly
+    <Directory /var/www/coraos>
+        Options -Indexes +FollowSymLinks
+        AllowOverride None
+        Require all granted
+    </Directory>
+
+    # Proxy API requests to the Rust backend
+    ProxyPreserveHost On
+    ProxyPass /api http://127.0.0.1:8080/api
+    ProxyPassReverse /api http://127.0.0.1:8080/api
+
+    # WebSocket proxy for real-time updates
+    RewriteEngine On
+    RewriteCond %{HTTP:Upgrade} websocket [NC]
+    RewriteCond %{HTTP:Connection} upgrade [NC]
+    RewriteRule ^/api/ws$ ws://127.0.0.1:8080/api/ws [P,L]
+
+    # SPA fallback: serve index.html for any route not matching a file
+    RewriteCond %{REQUEST_URI} !^/api
+    RewriteCond %{DOCUMENT_ROOT}%{REQUEST_URI} !-f
+    RewriteCond %{DOCUMENT_ROOT}%{REQUEST_URI} !-d
+    RewriteRule . /index.html [L]
+
+    ErrorLog ${APACHE_LOG_DIR}/coraos-error.log
+    CustomLog ${APACHE_LOG_DIR}/coraos-access.log combined
+</VirtualHost>
+APACHECONF
 
 # ============================================================
 # Chroot configuration
@@ -161,13 +204,25 @@ apt-get install -y --no-install-recommends \
   coreutils \
   util-linux \
   console-setup \
-  dbus
+  dbus \
+  apache2
+
+# Enable Apache modules needed for reverse proxy and rewrite
+a2enmod proxy
+a2enmod proxy_http
+a2enmod proxy_wstunnel
+a2enmod rewrite
+
+# Disable default site, enable CoraOS site
+a2dissite 000-default
+a2ensite coraos
 
 # Enable services
 systemctl enable NetworkManager
+systemctl enable apache2
 systemctl enable coraos.service
 
-# Create system user for the web platform
+# Create system user for the backend
 useradd --system --no-create-home --shell /usr/sbin/nologin coraos 2>/dev/null || true
 chown -R coraos:coraos /opt/coraos
 
@@ -242,9 +297,9 @@ grub-mkrescue -o "${ISO_NAME}" "${IMAGE_DIR}"
 SUCCESS "=========================================================="
 SUCCESS " CoraOS ISO generated: ${WORKDIR}/${ISO_NAME}"
 SUCCESS " "
-SUCCESS " Includes:"
-SUCCESS "   - Debian Live system"
-SUCCESS "   - CoraOS web management (http://<ip>:8080)"
-SUCCESS "   - Console admin utility (auto-starts on tty1)"
-SUCCESS "   - Custom boot splash"
+SUCCESS " Access the dashboard: http://<server-ip>"
+SUCCESS " Console admin: auto-starts on tty1"
+SUCCESS " "
+SUCCESS " Apache2 serves frontend on port 80"
+SUCCESS " Backend API runs on port 8080 (proxied via /api)"
 SUCCESS "=========================================================="
