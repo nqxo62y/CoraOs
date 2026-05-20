@@ -16,6 +16,7 @@ pub struct AuditLog {
 
 /// Query parameters for filtering audit logs.
 #[derive(Debug, Deserialize)]
+#[allow(dead_code)]
 pub struct AuditLogQuery {
     pub user_id: Option<String>,
     pub action: Option<String>,

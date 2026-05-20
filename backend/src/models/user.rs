@@ -12,6 +12,7 @@ pub enum UserRole {
     Viewer,
 }
 
+#[allow(dead_code)]
 impl UserRole {
     pub fn as_str(&self) -> &str {
         match self {

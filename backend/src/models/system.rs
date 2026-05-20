@@ -76,6 +76,7 @@ pub struct ServiceInfo {
 
 /// Request to perform a service action.
 #[derive(Debug, Deserialize)]
+#[allow(dead_code)]
 pub struct ServiceActionRequest {
     pub service: String,
     pub action: ServiceAction,

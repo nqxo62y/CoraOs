@@ -37,6 +37,7 @@ pub struct Claims {
 
 /// Authenticated user context extracted from JWT middleware.
 #[derive(Debug, Clone)]
+#[allow(dead_code)]
 pub struct AuthenticatedUser {
     pub user_id: String,
     pub username: String,

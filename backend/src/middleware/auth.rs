@@ -61,6 +61,7 @@ pub async fn require_auth(
 }
 
 /// Middleware that requires the user to have admin role.
+#[allow(dead_code)]
 pub async fn require_admin(
     State(_state): State<Arc<AppState>>,
     request: Request,
@@ -84,6 +85,7 @@ pub async fn require_admin(
 }
 
 /// Middleware that requires operator or admin role.
+#[allow(dead_code)]
 pub async fn require_operator(
     State(_state): State<Arc<AppState>>,
     request: Request,
