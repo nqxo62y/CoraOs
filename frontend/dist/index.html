@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>CoraOS - Server Management</title>
+    <title>CoraOS</title>
     <link rel="stylesheet" href="/css/styles.css">
     <link rel="icon" href="/favicon.ico" type="image/x-icon">
 </head>
@@ -12,28 +12,23 @@
     <div id="login-page" class="page login-page">
         <div class="login-container">
             <div class="login-logo">
-                <div class="logo-icon">
-                    <img src="/img/logo.ico" alt="CoraOS" class="logo-img">
-                </div>
+                <img src="/img/logo.ico" alt="" class="logo-img">
                 <h1>CoraOS</h1>
-                <p>Server Management Platform</p>
+                <p>Server Management</p>
             </div>
-            <form id="login-form" class="login-form">
+            <form id="login-form">
                 <div class="form-group">
                     <label for="username">Username</label>
-                    <input type="text" id="username" name="username" required autocomplete="username" placeholder="Enter username">
+                    <input type="text" id="username" name="username" required autocomplete="username">
                 </div>
                 <div class="form-group">
                     <label for="password">Password</label>
-                    <input type="password" id="password" name="password" required autocomplete="current-password" placeholder="Enter password">
+                    <input type="password" id="password" name="password" required autocomplete="current-password">
                 </div>
                 <div id="login-error" class="error-message hidden"></div>
                 <button type="submit" class="btn btn-primary btn-full" id="login-btn">
-                    <span class="btn-text">Sign In</span>
-                    <span class="btn-loading hidden">
-                        <span class="spinner"></span>
-                        Signing in...
-                    </span>
+                    <span class="btn-text">Sign in</span>
+                    <span class="btn-loading hidden"><span class="spinner"></span>Signing in...</span>
                 </button>
             </form>
         </div>
@@ -41,172 +36,162 @@
 
     <!-- Main Dashboard -->
     <div id="dashboard" class="dashboard hidden">
-        <!-- Sidebar Navigation -->
         <aside class="sidebar">
             <div class="sidebar-header">
                 <div class="sidebar-brand">
-                    <img src="/img/logo.ico" alt="CoraOS" class="sidebar-logo-img">
+                    <img src="/img/logo.ico" alt="" class="sidebar-logo-img">
                     <span class="sidebar-logo-text">CoraOS</span>
                 </div>
             </div>
-            <nav class="sidebar-nav">
-                <a href="#" class="nav-item active" data-page="overview">
-                    <span class="nav-icon">&#9632;</span>
-                    <span class="nav-label">Dashboard</span>
-                </a>
-                <a href="#" class="nav-item" data-page="services">
-                    <span class="nav-icon">&#9881;</span>
-                    <span class="nav-label">Services</span>
-                </a>
-                <a href="#" class="nav-item" data-page="processes">
-                    <span class="nav-icon">&#9776;</span>
-                    <span class="nav-label">Processes</span>
-                </a>
-                <a href="#" class="nav-item" data-page="logs">
-                    <span class="nav-icon">&#9998;</span>
-                    <span class="nav-label">Logs</span>
-                </a>
-                <a href="#" class="nav-item" data-page="updates">
-                    <span class="nav-icon">&#8635;</span>
-                    <span class="nav-label">Updates</span>
-                </a>
-                <a href="#" class="nav-item" data-page="backups">
-                    <span class="nav-icon">&#128190;</span>
-                    <span class="nav-label">Backups</span>
-                </a>
-                <a href="#" class="nav-item" data-page="users">
-                    <span class="nav-icon">&#128100;</span>
-                    <span class="nav-label">Users</span>
-                </a>
-                <a href="#" class="nav-item" data-page="config">
-                    <span class="nav-icon">&#9881;</span>
-                    <span class="nav-label">Configuration</span>
-                </a>
-                <a href="#" class="nav-item" data-page="settings">
-                    <span class="nav-icon">&#9881;</span>
-                    <span class="nav-label">Settings</span>
-                </a>
+            <nav class="sidebar-nav" id="sidebar-nav">
+                <div class="nav-section">Overview</div>
+                <a class="nav-item active" data-page="overview"></a>
+                <div class="nav-section">Management</div>
+                <a class="nav-item" data-page="services"></a>
+                <a class="nav-item" data-page="processes"></a>
+                <a class="nav-item" data-page="logs"></a>
+                <a class="nav-item" data-page="updates"></a>
+                <a class="nav-item" data-page="backups"></a>
+                <div class="nav-section">Administration</div>
+                <a class="nav-item" data-page="users"></a>
+                <a class="nav-item" data-page="config"></a>
+                <a class="nav-item" data-page="settings"></a>
             </nav>
             <div class="sidebar-footer">
                 <div class="user-info">
-                    <span id="current-user">admin</span>
-                    <span id="current-role" class="badge">admin</span>
+                    <div class="user-avatar" id="user-avatar">A</div>
+                    <div class="user-details">
+                        <div class="user-name" id="current-user">admin</div>
+                        <div class="user-role" id="current-role">admin</div>
+                    </div>
                 </div>
-                <button id="logout-btn" class="btn btn-sm btn-outline">Logout</button>
+                <button id="logout-btn" class="btn btn-outline btn-sm btn-full"></button>
             </div>
         </aside>
 
-        <!-- Main Content Area -->
         <main class="main-content">
-            <!-- Top Bar -->
             <header class="topbar">
-                <button class="sidebar-toggle" id="sidebar-toggle">&#9776;</button>
+                <button class="sidebar-toggle btn-icon" id="sidebar-toggle" aria-label="Menu"></button>
                 <div class="search-container">
                     <input type="text" id="global-search" placeholder="Search..." class="search-input">
                 </div>
                 <div class="topbar-actions">
-                    <button class="btn btn-icon" id="theme-toggle" title="Toggle theme">&#9788;</button>
-                    <div class="notifications" id="notifications-container">
-                        <button class="btn btn-icon" id="notifications-btn" title="Notifications">&#128276;</button>
+                    <button class="btn-icon" id="theme-toggle" title="Toggle theme"></button>
+                    <div class="notifications">
+                        <button class="btn-icon" id="notifications-btn" title="Notifications"></button>
                         <span class="notification-badge hidden" id="notification-badge">0</span>
                     </div>
                 </div>
             </header>
 
-            <!-- Page Content -->
             <div class="content-area">
-                <!-- Overview Page -->
+
+                <!-- Overview -->
                 <section id="page-overview" class="page-section active">
-                    <h1 class="page-title">Dashboard Overview</h1>
+                    <div class="page-header">
+                        <div>
+                            <h1 class="page-title">Dashboard</h1>
+                            <div class="page-subtitle">Real-time system overview</div>
+                        </div>
+                    </div>
                     <div class="metrics-grid">
                         <div class="metric-card">
-                            <div class="metric-header">CPU Usage</div>
-                            <div class="metric-value" id="cpu-usage">0%</div>
+                            <div class="metric-header">
+                                <div class="metric-title" id="cpu-title">CPU</div>
+                            </div>
+                            <div class="metric-value" id="cpu-usage">—</div>
                             <div class="metric-bar"><div class="metric-bar-fill" id="cpu-bar"></div></div>
                             <div class="metric-detail" id="cpu-detail">Loading...</div>
                         </div>
                         <div class="metric-card">
-                            <div class="metric-header">Memory</div>
-                            <div class="metric-value" id="mem-usage">0%</div>
+                            <div class="metric-header">
+                                <div class="metric-title" id="mem-title">Memory</div>
+                            </div>
+                            <div class="metric-value" id="mem-usage">—</div>
                             <div class="metric-bar"><div class="metric-bar-fill" id="mem-bar"></div></div>
                             <div class="metric-detail" id="mem-detail">Loading...</div>
                         </div>
                         <div class="metric-card">
-                            <div class="metric-header">Disk</div>
-                            <div class="metric-value" id="disk-usage">0%</div>
+                            <div class="metric-header">
+                                <div class="metric-title" id="disk-title">Disk</div>
+                            </div>
+                            <div class="metric-value" id="disk-usage">—</div>
                             <div class="metric-bar"><div class="metric-bar-fill" id="disk-bar"></div></div>
                             <div class="metric-detail" id="disk-detail">Loading...</div>
                         </div>
                         <div class="metric-card">
-                            <div class="metric-header">Network</div>
-                            <div class="metric-value" id="net-usage">0 B/s</div>
+                            <div class="metric-header">
+                                <div class="metric-title" id="net-title">Network</div>
+                            </div>
+                            <div class="metric-value" id="net-usage">—</div>
                             <div class="metric-detail" id="net-detail">Loading...</div>
                         </div>
                     </div>
                     <div class="info-grid">
                         <div class="info-card">
-                            <h3>System Information</h3>
-                            <div class="info-row"><span>Hostname:</span><span id="sys-hostname">-</span></div>
-                            <div class="info-row"><span>OS:</span><span id="sys-os">-</span></div>
-                            <div class="info-row"><span>Kernel:</span><span id="sys-kernel">-</span></div>
-                            <div class="info-row"><span>Uptime:</span><span id="sys-uptime">-</span></div>
-                            <div class="info-row"><span>Load Average:</span><span id="sys-load">-</span></div>
-                            <div class="info-row"><span>CPU:</span><span id="sys-cpu-model">-</span></div>
+                            <div class="info-card-header" id="sysinfo-title">System Information</div>
+                            <div class="info-row"><span class="label">Hostname</span><span class="value" id="sys-hostname">—</span></div>
+                            <div class="info-row"><span class="label">Operating System</span><span class="value" id="sys-os">—</span></div>
+                            <div class="info-row"><span class="label">Kernel</span><span class="value" id="sys-kernel">—</span></div>
+                            <div class="info-row"><span class="label">Uptime</span><span class="value" id="sys-uptime">—</span></div>
+                            <div class="info-row"><span class="label">Load Average</span><span class="value" id="sys-load">—</span></div>
+                            <div class="info-row"><span class="label">Processor</span><span class="value" id="sys-cpu-model">—</span></div>
                         </div>
                     </div>
                 </section>
 
-                <!-- Services Page -->
+                <!-- Services -->
                 <section id="page-services" class="page-section">
-                    <h1 class="page-title">Service Management</h1>
+                    <div class="page-header">
+                        <div>
+                            <h1 class="page-title">Services</h1>
+                            <div class="page-subtitle">Manage systemd services</div>
+                        </div>
+                    </div>
                     <div class="toolbar">
                         <input type="text" id="service-search" placeholder="Filter services..." class="search-input">
+                        <button class="btn btn-outline btn-sm" id="services-refresh"></button>
                     </div>
                     <div class="table-container">
-                        <table class="data-table" id="services-table">
-                            <thead>
-                                <tr>
-                                    <th>Service</th>
-                                    <th>Status</th>
-                                    <th>State</th>
-                                    <th>Description</th>
-                                    <th>Actions</th>
-                                </tr>
-                            </thead>
-                            <tbody id="services-tbody"></tbody>
-                        </table>
+                        <div class="table-scroll">
+                            <table class="data-table">
+                                <thead><tr><th>Service</th><th>Status</th><th>State</th><th>Description</th><th>Actions</th></tr></thead>
+                                <tbody id="services-tbody"></tbody>
+                            </table>
+                        </div>
                     </div>
-                    <div class="loading-state" id="services-loading">Loading services...</div>
                 </section>
 
-                <!-- Processes Page -->
+                <!-- Processes -->
                 <section id="page-processes" class="page-section">
-                    <h1 class="page-title">Process Monitor</h1>
+                    <div class="page-header">
+                        <div>
+                            <h1 class="page-title">Processes</h1>
+                            <div class="page-subtitle">Top processes by CPU usage</div>
+                        </div>
+                    </div>
                     <div class="table-container">
-                        <table class="data-table" id="processes-table">
-                            <thead>
-                                <tr>
-                                    <th>PID</th>
-                                    <th>Name</th>
-                                    <th>CPU %</th>
-                                    <th>Memory</th>
-                                    <th>Status</th>
-                                </tr>
-                            </thead>
-                            <tbody id="processes-tbody"></tbody>
-                        </table>
+                        <div class="table-scroll">
+                            <table class="data-table">
+                                <thead><tr><th>PID</th><th>Name</th><th>CPU %</th><th>Memory</th><th>Status</th></tr></thead>
+                                <tbody id="processes-tbody"></tbody>
+                            </table>
+                        </div>
                     </div>
                 </section>
 
-                <!-- Logs Page -->
+                <!-- Logs -->
                 <section id="page-logs" class="page-section">
-                    <h1 class="page-title">System Logs</h1>
+                    <div class="page-header">
+                        <div>
+                            <h1 class="page-title">Logs</h1>
+                            <div class="page-subtitle">System journal</div>
+                        </div>
+                    </div>
                     <div class="toolbar">
-                        <select id="log-unit" class="select-input">
-                            <option value="">All Units</option>
-                        </select>
+                        <select id="log-unit" class="select-input"><option value="">All units</option></select>
                         <select id="log-priority" class="select-input">
-                            <option value="">All Priorities</option>
+                            <option value="">All priorities</option>
                             <option value="emerg">Emergency</option>
                             <option value="alert">Alert</option>
                             <option value="crit">Critical</option>
@@ -217,111 +202,113 @@
                             <option value="debug">Debug</option>
                         </select>
                         <input type="text" id="log-search" placeholder="Search logs..." class="search-input">
-                        <button class="btn btn-primary" id="refresh-logs-btn">Refresh</button>
+                        <button class="btn btn-primary btn-sm" id="refresh-logs-btn"></button>
                     </div>
                     <div class="log-viewer" id="log-viewer"></div>
                 </section>
 
-                <!-- Updates Page -->
+                <!-- Updates -->
                 <section id="page-updates" class="page-section">
-                    <h1 class="page-title">System Updates</h1>
+                    <div class="page-header">
+                        <div>
+                            <h1 class="page-title">System Updates</h1>
+                            <div class="page-subtitle">Available package updates</div>
+                        </div>
+                    </div>
                     <div class="toolbar">
-                        <button class="btn btn-primary" id="check-updates-btn">Check for Updates</button>
-                        <button class="btn btn-success" id="apply-updates-btn" disabled>Apply All Updates</button>
+                        <button class="btn btn-primary btn-sm" id="check-updates-btn"></button>
+                        <button class="btn btn-success btn-sm" id="apply-updates-btn" disabled></button>
                     </div>
                     <div class="table-container">
-                        <table class="data-table" id="updates-table">
-                            <thead>
-                                <tr>
-                                    <th>Package</th>
-                                    <th>Current Version</th>
-                                    <th>New Version</th>
-                                    <th>Repository</th>
-                                </tr>
-                            </thead>
-                            <tbody id="updates-tbody"></tbody>
-                        </table>
+                        <div class="table-scroll">
+                            <table class="data-table">
+                                <thead><tr><th>Package</th><th>Current</th><th>New</th><th>Repository</th></tr></thead>
+                                <tbody id="updates-tbody"></tbody>
+                            </table>
+                        </div>
                     </div>
                     <div id="updates-status" class="status-message"></div>
                 </section>
 
-                <!-- Backups Page -->
+                <!-- Backups -->
                 <section id="page-backups" class="page-section">
-                    <h1 class="page-title">Backup Manager</h1>
+                    <div class="page-header">
+                        <div>
+                            <h1 class="page-title">Backups</h1>
+                            <div class="page-subtitle">Manage system backups</div>
+                        </div>
+                    </div>
                     <div class="toolbar">
-                        <button class="btn btn-primary" id="create-backup-btn">Create Backup</button>
+                        <button class="btn btn-primary btn-sm" id="create-backup-btn"></button>
                     </div>
                     <div class="table-container">
-                        <table class="data-table" id="backups-table">
-                            <thead>
-                                <tr>
-                                    <th>Name</th>
-                                    <th>Size</th>
-                                    <th>Status</th>
-                                    <th>Created</th>
-                                    <th>Actions</th>
-                                </tr>
-                            </thead>
-                            <tbody id="backups-tbody"></tbody>
-                        </table>
+                        <div class="table-scroll">
+                            <table class="data-table">
+                                <thead><tr><th>Name</th><th>Size</th><th>Status</th><th>Created</th><th>Actions</th></tr></thead>
+                                <tbody id="backups-tbody"></tbody>
+                            </table>
+                        </div>
                     </div>
                 </section>
 
-                <!-- Users Page -->
+                <!-- Users -->
                 <section id="page-users" class="page-section">
-                    <h1 class="page-title">User Management</h1>
+                    <div class="page-header">
+                        <div>
+                            <h1 class="page-title">Users</h1>
+                            <div class="page-subtitle">Manage user accounts</div>
+                        </div>
+                    </div>
                     <div class="toolbar">
-                        <button class="btn btn-primary" id="create-user-btn">Create User</button>
+                        <button class="btn btn-primary btn-sm" id="create-user-btn"></button>
                     </div>
                     <div class="table-container">
-                        <table class="data-table" id="users-table">
-                            <thead>
-                                <tr>
-                                    <th>Username</th>
-                                    <th>Role</th>
-                                    <th>Status</th>
-                                    <th>Last Login</th>
-                                    <th>Actions</th>
-                                </tr>
-                            </thead>
-                            <tbody id="users-tbody"></tbody>
-                        </table>
+                        <div class="table-scroll">
+                            <table class="data-table">
+                                <thead><tr><th>Username</th><th>Role</th><th>Status</th><th>Last Login</th><th>Actions</th></tr></thead>
+                                <tbody id="users-tbody"></tbody>
+                            </table>
+                        </div>
                     </div>
                 </section>
 
-                <!-- Configuration Page -->
+                <!-- Configuration -->
                 <section id="page-config" class="page-section">
-                    <h1 class="page-title">Server Configuration</h1>
+                    <div class="page-header">
+                        <div>
+                            <h1 class="page-title">Configuration</h1>
+                            <div class="page-subtitle">Server settings</div>
+                        </div>
+                    </div>
                     <div class="toolbar">
-                        <button class="btn btn-primary" id="add-config-btn">Add Entry</button>
+                        <button class="btn btn-primary btn-sm" id="add-config-btn"></button>
                     </div>
                     <div class="table-container">
-                        <table class="data-table" id="config-table">
-                            <thead>
-                                <tr>
-                                    <th>Key</th>
-                                    <th>Value</th>
-                                    <th>Description</th>
-                                    <th>Updated</th>
-                                    <th>Actions</th>
-                                </tr>
-                            </thead>
-                            <tbody id="config-tbody"></tbody>
-                        </table>
+                        <div class="table-scroll">
+                            <table class="data-table">
+                                <thead><tr><th>Key</th><th>Value</th><th>Description</th><th>Updated</th><th>Actions</th></tr></thead>
+                                <tbody id="config-tbody"></tbody>
+                            </table>
+                        </div>
                     </div>
                 </section>
 
-                <!-- Settings Page -->
+                <!-- Settings -->
                 <section id="page-settings" class="page-section">
-                    <h1 class="page-title">Settings</h1>
+                    <div class="page-header">
+                        <div>
+                            <h1 class="page-title">Settings</h1>
+                            <div class="page-subtitle">Personal preferences</div>
+                        </div>
+                    </div>
                     <div class="settings-grid">
                         <div class="settings-card">
                             <h3>Appearance</h3>
                             <div class="setting-row">
                                 <label>Theme</label>
-                                <select id="theme-select" class="select-input">
-                                    <option value="dark">Dark Mode</option>
-                                    <option value="light">Light Mode</option>
+                                <select id="theme-select" class="select-input" style="width:auto;min-width:140px;">
+                                    <option value="dark">Dark</option>
+                                    <option value="light">Light</option>
                                 </select>
                             </div>
                         </div>
@@ -329,39 +316,29 @@
                             <h3>Account</h3>
                             <div class="setting-row">
                                 <label>Change Password</label>
-                                <button class="btn btn-outline" id="change-password-btn">Change</button>
+                                <button class="btn btn-outline btn-sm" id="change-password-btn">Change</button>
                             </div>
                         </div>
-                    </div>
-                </section>
-
-                <!-- Error Page -->
-                <section id="page-error" class="page-section">
-                    <div class="error-page">
-                        <h1>Something went wrong</h1>
-                        <p id="error-message">An unexpected error occurred.</p>
-                        <button class="btn btn-primary" onclick="location.reload()">Reload</button>
                     </div>
                 </section>
             </div>
         </main>
     </div>
 
-    <!-- Modal Overlay -->
     <div id="modal-overlay" class="modal-overlay hidden">
         <div class="modal" id="modal">
             <div class="modal-header">
-                <h3 id="modal-title">Modal</h3>
-                <button class="modal-close" id="modal-close">&times;</button>
+                <h3 id="modal-title"></h3>
+                <button class="modal-close" id="modal-close" aria-label="Close"></button>
             </div>
             <div class="modal-body" id="modal-body"></div>
             <div class="modal-footer" id="modal-footer"></div>
         </div>
     </div>
 
-    <!-- Notification Toast Container -->
     <div id="toast-container" class="toast-container"></div>
 
+    <script src="/js/icons.js"></script>
     <script src="/js/api.js"></script>
     <script src="/js/app.js"></script>
 </body>

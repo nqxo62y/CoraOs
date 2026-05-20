@@ -55,7 +55,8 @@ pub async fn get_logs(
         args.push(format!("--until={}", until));
     }
 
-    let output = Command::new("journalctl")
+    let output = Command::new("sudo")
+        .args(["-n", "journalctl"])
         .args(&args)
         .output()
         .map_err(|e| {
@@ -119,8 +120,8 @@ pub async fn get_logs(
 pub async fn get_log_units(
     State(_state): State<Arc<AppState>>,
 ) -> Result<Json<Vec<String>>, (StatusCode, Json<Value>)> {
-    let output = Command::new("journalctl")
-        .args(["--field=_SYSTEMD_UNIT", "--no-pager"])
+    let output = Command::new("sudo")
+        .args(["-n", "journalctl", "--field=_SYSTEMD_UNIT", "--no-pager"])
         .output()
         .map_err(|e| {
             (

@@ -1,6 +1,3 @@
-//! System update checker service.
-//!
-//! Queries apt for available package updates on Debian systems.
 
 use anyhow::{anyhow, Result};
 use std::process::Command;
@@ -10,18 +7,18 @@ use crate::models::system::UpdateInfo;
 
 /// Check for available system updates using apt.
 pub fn check_updates() -> Result<Vec<UpdateInfo>> {
-    // First refresh the package list
-    let refresh = Command::new("apt-get")
-        .args(["update", "-qq"])
+    // Refresh the package list using sudo (passwordless rule installed at setup)
+    let refresh = Command::new("sudo")
+        .args(["-n", "apt-get", "update", "-qq"])
         .output()
         .map_err(|e| anyhow!("Failed to run apt-get update: {}", e))?;
 
     if !refresh.status.success() {
         let stderr = String::from_utf8_lossy(&refresh.stderr);
-        return Err(anyhow!("apt-get update failed: {}", stderr));
+        return Err(anyhow!("apt-get update failed: {}", stderr.trim()));
     }
 
-    // List upgradable packages
+    // List upgradable packages (no sudo needed)
     let output = Command::new("apt")
         .args(["list", "--upgradable"])
         .output()
@@ -40,8 +37,8 @@ pub fn check_updates() -> Result<Vec<UpdateInfo>> {
 
 /// Apply all available system updates.
 pub fn apply_updates() -> Result<String> {
-    let output = Command::new("apt-get")
-        .args(["upgrade", "-y", "-qq"])
+    let output = Command::new("sudo")
+        .args(["-n", "apt-get", "upgrade", "-y", "-qq"])
         .output()
         .map_err(|e| anyhow!("Failed to run apt-get upgrade: {}", e))?;
 
@@ -51,7 +48,7 @@ pub fn apply_updates() -> Result<String> {
         Ok(stdout.to_string())
     } else {
         let stderr = String::from_utf8_lossy(&output.stderr);
-        Err(anyhow!("apt-get upgrade failed: {}", stderr))
+        Err(anyhow!("apt-get upgrade failed: {}", stderr.trim()))
     }
 }
 

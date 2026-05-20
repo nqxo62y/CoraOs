@@ -15,6 +15,9 @@ const App = {
     init() {
         API.init();
 
+        // Inject SVG icons throughout the UI
+        this.renderIcons();
+
         if (API.isAuthenticated()) {
             this.user = JSON.parse(localStorage.getItem('coraos_user') || '{}');
             this.showDashboard();
@@ -24,6 +27,59 @@ const App = {
 
         this.bindEvents();
         this.loadTheme();
+    },
+
+    /**
+     * Inject icons and labels into the static UI.
+     */
+    renderIcons() {
+        const navItems = {
+            overview: { icon: 'dashboard', label: 'Dashboard' },
+            services: { icon: 'services', label: 'Services' },
+            processes: { icon: 'processes', label: 'Processes' },
+            logs: { icon: 'logs', label: 'Logs' },
+            updates: { icon: 'updates', label: 'Updates' },
+            backups: { icon: 'backups', label: 'Backups' },
+            users: { icon: 'users', label: 'Users' },
+            config: { icon: 'config', label: 'Configuration' },
+            settings: { icon: 'settings', label: 'Settings' },
+        };
+
+        document.querySelectorAll('.nav-item[data-page]').forEach(item => {
+            const cfg = navItems[item.dataset.page];
+            if (cfg) {
+                item.innerHTML = `${Icons.render(cfg.icon)}<span>${cfg.label}</span>`;
+            }
+        });
+
+        // Topbar
+        const set = (id, html) => { const el = document.getElementById(id); if (el) el.innerHTML = html; };
+        const append = (id, html) => { const el = document.getElementById(id); if (el) el.innerHTML += html; };
+
+        set('sidebar-toggle', Icons.render('menu'));
+        set('theme-toggle', Icons.render('moon'));
+        set('notifications-btn', Icons.render('bell'));
+        document.querySelector('.search-container').insertAdjacentHTML('afterbegin', Icons.render('search'));
+
+        // Logout button
+        set('logout-btn', `${Icons.render('logout', 'icon-sm')}<span>Sign out</span>`);
+
+        // Metric icons
+        set('cpu-title', `${Icons.render('cpu', 'icon-sm')}CPU`);
+        set('mem-title', `${Icons.render('memory', 'icon-sm')}Memory`);
+        set('disk-title', `${Icons.render('disk', 'icon-sm')}Disk`);
+        set('net-title', `${Icons.render('network', 'icon-sm')}Network`);
+        set('sysinfo-title', `${Icons.render('server')}<span>System Information</span>`);
+
+        // Buttons with icons
+        set('services-refresh', `${Icons.render('refresh', 'icon-sm')}<span>Refresh</span>`);
+        set('refresh-logs-btn', `${Icons.render('refresh', 'icon-sm')}<span>Refresh</span>`);
+        set('check-updates-btn', `${Icons.render('refresh', 'icon-sm')}<span>Check for Updates</span>`);
+        set('apply-updates-btn', `${Icons.render('download', 'icon-sm')}<span>Apply All</span>`);
+        set('create-backup-btn', `${Icons.render('plus', 'icon-sm')}<span>Create Backup</span>`);
+        set('create-user-btn', `${Icons.render('plus', 'icon-sm')}<span>Create User</span>`);
+        set('add-config-btn', `${Icons.render('plus', 'icon-sm')}<span>Add Entry</span>`);
+        set('modal-close', Icons.render('x'));
     },
 
     /**
@@ -63,6 +119,10 @@ const App = {
             this.filterServices(e.target.value);
         });
 
+        // Service refresh
+        const svcRefresh = document.getElementById('services-refresh');
+        if (svcRefresh) svcRefresh.addEventListener('click', () => this.loadServices());
+
         // Log controls
         document.getElementById('refresh-logs-btn').addEventListener('click', () => this.loadLogs());
 
@@ -95,8 +155,10 @@ const App = {
     showDashboard() {
         document.getElementById('login-page').classList.add('hidden');
         document.getElementById('dashboard').classList.remove('hidden');
-        document.getElementById('current-user').textContent = this.user?.username || 'user';
+        const username = this.user?.username || 'user';
+        document.getElementById('current-user').textContent = username;
         document.getElementById('current-role').textContent = this.user?.role || 'viewer';
+        document.getElementById('user-avatar').textContent = username.charAt(0).toUpperCase();
         this.navigateTo('overview');
         this.connectWebSocket();
     },
@@ -269,13 +331,16 @@ const App = {
 
     // ===== Services =====
     async loadServices() {
-        const loading = document.getElementById('services-loading');
         const tbody = document.getElementById('services-tbody');
-        loading.classList.remove('hidden');
+        tbody.innerHTML = '<tr><td colspan="5" class="loading-state"><span class="spinner"></span>Loading services...</td></tr>';
 
         try {
             const services = await API.getServices();
             tbody.innerHTML = '';
+            if (services.length === 0) {
+                tbody.innerHTML = '<tr><td colspan="5" class="empty-state">No services found</td></tr>';
+                return;
+            }
             services.forEach(svc => {
                 const statusClass = svc.active_state === 'active' ? 'badge-success' :
                     svc.active_state === 'failed' ? 'badge-danger' : 'badge-warning';
@@ -284,20 +349,18 @@ const App = {
                 row.innerHTML = `
                     <td><strong>${this.escapeHtml(svc.name)}</strong></td>
                     <td><span class="badge ${statusClass}">${this.escapeHtml(svc.active_state)}</span></td>
-                    <td>${this.escapeHtml(svc.sub_state)}</td>
+                    <td><span class="badge badge-neutral">${this.escapeHtml(svc.sub_state)}</span></td>
                     <td>${this.escapeHtml(svc.description)}</td>
-                    <td>
-                        <button class="btn btn-sm btn-success" onclick="App.doServiceAction('${svc.name}', 'start')">Start</button>
-                        <button class="btn btn-sm btn-danger" onclick="App.doServiceAction('${svc.name}', 'stop')">Stop</button>
-                        <button class="btn btn-sm btn-outline" onclick="App.doServiceAction('${svc.name}', 'restart')">Restart</button>
-                    </td>
+                    <td><div class="actions">
+                        <button class="btn btn-sm btn-outline" title="Start" onclick="App.doServiceAction('${svc.name}', 'start')">${Icons.render('play','icon-sm')}</button>
+                        <button class="btn btn-sm btn-outline" title="Stop" onclick="App.doServiceAction('${svc.name}', 'stop')">${Icons.render('stop','icon-sm')}</button>
+                        <button class="btn btn-sm btn-outline" title="Restart" onclick="App.doServiceAction('${svc.name}', 'restart')">${Icons.render('refresh','icon-sm')}</button>
+                    </div></td>
                 `;
                 tbody.appendChild(row);
             });
         } catch (err) {
             this.showToast('Failed to load services: ' + err.message, 'error');
-        } finally {
-            loading.classList.add('hidden');
         }
     },
 
@@ -367,7 +430,7 @@ const App = {
                 div.className = `log-entry priority-${this.priorityName(entry.priority)}`;
                 div.innerHTML = `
                     <span class="log-time">${this.formatTimestamp(entry.timestamp)}</span>
-                    <span class="log-unit">${this.escapeHtml(entry.unit)}</span>
+                    <span class="log-unit" title="${this.escapeHtml(entry.unit)}">${this.escapeHtml(entry.unit)}</span>
                     <span class="log-msg">${this.escapeHtml(entry.message)}</span>
                 `;
                 viewer.appendChild(div);
@@ -480,9 +543,9 @@ const App = {
                     <td>${this.formatBytes(backup.size_bytes)}</td>
                     <td><span class="badge ${statusClass}">${backup.status}</span></td>
                     <td>${this.formatDate(backup.created_at)}</td>
-                    <td>
-                        <button class="btn btn-sm btn-danger" onclick="App.deleteBackup('${backup.id}')">Delete</button>
-                    </td>
+                    <td><div class="actions">
+                        <button class="btn btn-sm btn-outline" title="Delete" onclick="App.deleteBackup('${backup.id}')">${Icons.render('trash','icon-sm')}</button>
+                    </div></td>
                 `;
                 tbody.appendChild(row);
             });
@@ -559,11 +622,11 @@ const App = {
                     <td><strong>${this.escapeHtml(user.username)}</strong></td>
                     <td><span class="badge badge-info">${user.role}</span></td>
                     <td>${statusBadge}</td>
-                    <td>${user.last_login ? this.formatDate(user.last_login) : 'Never'}</td>
-                    <td>
-                        <button class="btn btn-sm btn-outline" onclick="App.showEditUserModal('${user.id}', '${user.username}', '${user.role}')">Edit</button>
-                        <button class="btn btn-sm btn-danger" onclick="App.deleteUser('${user.id}')">Delete</button>
-                    </td>
+                    <td>${user.last_login ? this.formatDate(user.last_login) : '<span class="empty">Never</span>'}</td>
+                    <td><div class="actions">
+                        <button class="btn btn-sm btn-outline" title="Edit" onclick="App.showEditUserModal('${user.id}', '${user.username}', '${user.role}')">${Icons.render('edit','icon-sm')}</button>
+                        <button class="btn btn-sm btn-outline" title="Delete" onclick="App.deleteUser('${user.id}')">${Icons.render('trash','icon-sm')}</button>
+                    </div></td>
                 `;
                 tbody.appendChild(row);
             });
@@ -689,11 +752,11 @@ const App = {
                 row.innerHTML = `
                     <td><strong>${this.escapeHtml(cfg.key)}</strong></td>
                     <td><code>${this.escapeHtml(cfg.value)}</code></td>
-                    <td>${this.escapeHtml(cfg.description || '-')}</td>
+                    <td>${this.escapeHtml(cfg.description || '—')}</td>
                     <td>${this.formatDate(cfg.updated_at)}</td>
-                    <td>
-                        <button class="btn btn-sm btn-outline" onclick="App.showEditConfigModal('${this.escapeHtml(cfg.key)}', '${this.escapeHtml(cfg.value)}')">Edit</button>
-                    </td>
+                    <td><div class="actions">
+                        <button class="btn btn-sm btn-outline" title="Edit" onclick="App.showEditConfigModal('${this.escapeHtml(cfg.key)}', '${this.escapeHtml(cfg.value)}')">${Icons.render('edit','icon-sm')}</button>
+                    </div></td>
                 `;
                 tbody.appendChild(row);
             });
@@ -771,7 +834,10 @@ const App = {
     setTheme(theme) {
         document.body.className = `theme-${theme}`;
         localStorage.setItem('coraos_theme', theme);
-        document.getElementById('theme-select').value = theme;
+        const select = document.getElementById('theme-select');
+        if (select) select.value = theme;
+        const toggle = document.getElementById('theme-toggle');
+        if (toggle) toggle.innerHTML = Icons.render(theme === 'dark' ? 'sun' : 'moon');
     },
 
     toggleTheme() {
@@ -806,7 +872,8 @@ const App = {
         const container = document.getElementById('toast-container');
         const toast = document.createElement('div');
         toast.className = `toast toast-${type}`;
-        toast.textContent = message;
+        const iconName = { success: 'check', error: 'alert', warning: 'alert', info: 'info' }[type] || 'info';
+        toast.innerHTML = `${Icons.render(iconName, 'icon-sm')}<span>${this.escapeHtml(message)}</span>`;
         container.appendChild(toast);
 
         setTimeout(() => {

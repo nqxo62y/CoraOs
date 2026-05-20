@@ -138,16 +138,19 @@ Restart=always
 RestartSec=5
 Environment=RUST_LOG=coraos_backend=info,tower_http=info
 
-# Security hardening
-NoNewPrivileges=true
-ProtectSystem=strict
-ProtectHome=true
-ReadWritePaths=/opt/coraos/data /opt/coraos/backups /opt/coraos/logs
-PrivateTmp=true
-
 [Install]
 WantedBy=multi-user.target
 SVCEOF
+
+# Sudoers rules so the backend can manage system services and apt without a password
+cat << 'SUDOEOF' > "${CHROOT_DIR}/etc/sudoers.d/coraos"
+# Allow coraos backend to manage services, apt updates, and tar backups
+coraos ALL=(root) NOPASSWD: /bin/systemctl, /usr/bin/systemctl
+coraos ALL=(root) NOPASSWD: /usr/bin/apt-get, /usr/bin/apt
+coraos ALL=(root) NOPASSWD: /bin/journalctl, /usr/bin/journalctl
+coraos ALL=(root) NOPASSWD: /bin/tar, /usr/bin/tar
+SUDOEOF
+chmod 440 "${CHROOT_DIR}/etc/sudoers.d/coraos"
 
 # Plymouth boot theme
 PLYMOUTH_THEME_DIR="${CHROOT_DIR}/usr/share/plymouth/themes/coraos"

@@ -71,8 +71,8 @@ pub fn get_service_status(service_name: &str) -> Result<ServiceInfo> {
 pub fn execute_service_action(service_name: &str, action: &ServiceAction) -> Result<String> {
     validate_service_name(service_name)?;
 
-    let output = Command::new("systemctl")
-        .args([action.as_str(), service_name])
+    let output = Command::new("sudo")
+        .args(["-n", "systemctl", action.as_str(), service_name])
         .output()
         .map_err(|e| anyhow!("Failed to execute service action: {}", e))?;
 
