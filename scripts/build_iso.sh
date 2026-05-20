@@ -24,7 +24,7 @@ ISO_NAME="coraos.iso"
 
 cleanup() {
     for mp in proc sys dev/pts dev; do
-        mountpoint -q "${CHROOT}/${mp}" 2>/dev/null && umount -lf "${CHROOT}/${mp}"
+        mountpoint -q "${CHROOT}/${mp}" 2>/dev/null && umount -lf "${CHROOT}/${mp}" || true
     done
 }
 trap cleanup EXIT
