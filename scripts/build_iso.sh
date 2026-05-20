@@ -281,14 +281,18 @@ mkdir -p /etc/systemd/system/getty@tty1.service.d
 cat << 'GETTY_EOF' > /etc/systemd/system/getty@tty1.service.d/override.conf
 [Service]
 ExecStart=
-ExecStart=-/sbin/agetty --autologin cora --noclear %I $TERM
+ExecStart=-/sbin/agetty --autologin cora --noclear %I linux
+Type=idle
 GETTY_EOF
 
-# Launch cora-welcome on login
-cat << 'PROFILE_EOF' >> /home/cora/.bash_profile
-/usr/local/bin/cora-welcome
+# Launch cora-welcome on login (use .profile for compatibility)
+cat << 'PROFILE_EOF' > /home/cora/.profile
+# Launch CoraOS console menu
+if [ "$(tty)" = "/dev/tty1" ]; then
+    /usr/local/bin/cora-welcome
+fi
 PROFILE_EOF
-chown cora:cora /home/cora/.bash_profile
+chown cora:cora /home/cora/.profile
 
 # Plymouth boot theme
 plymouth-set-default-theme -R coraos
