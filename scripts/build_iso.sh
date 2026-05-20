@@ -381,8 +381,11 @@ apt-get install -y --no-install-recommends \
     plymouth plymouth-themes sudo network-manager iproute2 \
     bash coreutils util-linux console-setup dbus dbus-x11 \
     apache2 parted dosfstools e2fsprogs squashfs-tools os-prober \
-    calamares calamares-settings-debian \
+    calamares \
     xorg xinit openbox
+
+# Install calamares-settings-debian then force-overwrite with our configs
+apt-get install -y -o Dpkg::Options::="--force-confnew" calamares-settings-debian 2>/dev/null || true
 
 # Apache setup
 a2enmod proxy proxy_http proxy_wstunnel rewrite
@@ -428,6 +431,10 @@ chmod +x "${CHROOT}/tmp/setup.sh"
 chroot "${CHROOT}" /bin/bash /tmp/setup.sh
 rm -f "${CHROOT}/tmp/setup.sh"
 SUCCESS "Chroot configuration complete."
+
+# Overwrite Calamares configs with our custom ones (after package install)
+INFO "Writing Calamares configuration..."
+cp logo/logo.png "${CHROOT}/etc/calamares/branding/coraos/logo.png" 2>/dev/null || true
 
 cleanup
 
