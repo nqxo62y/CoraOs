@@ -203,11 +203,13 @@ const App = {
 
         // Show/hide page sections
         document.querySelectorAll('.page-section').forEach(section => {
-            section.classList.toggle('active', section.id === `page-${page}`);
+            const isTarget = section.id === `page-${page}`;
+            section.classList.toggle('active', isTarget);
+            section.classList.toggle('hidden', !isTarget);
         });
 
         // Close mobile sidebar
-        document.querySelector('.sidebar').classList.remove('open');
+        document.querySelector('aside')?.classList.remove('open');
 
         // Load page data
         this.loadPageData(page);

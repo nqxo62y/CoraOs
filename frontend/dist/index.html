@@ -1,339 +1,242 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="en" class="dark">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>CoraOS</title>
-    <link rel="stylesheet" href="/css/styles.css">
     <link rel="icon" href="/favicon.ico" type="image/x-icon">
+    <!-- Tailwind CSS CDN -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            darkMode: 'class',
+            theme: {
+                extend: {
+                    colors: {
+                        coal: { 50:'#f6f6f6',100:'#e7e7e7',200:'#d1d1d1',300:'#b0b0b0',400:'#888',500:'#6d6d6d',600:'#5d5d5d',700:'#4f4f4f',800:'#3d3d3d',900:'#272729',950:'#1b1b1d' },
+                        primary: { DEFAULT:'#4f8cc9',50:'#f0f7ff',100:'#e0effe',200:'#bae0fd',300:'#7cc8fc',400:'#4f8cc9',500:'#1a73e8',600:'#155bb5',700:'#104a93',800:'#0d3d7a',900:'#0a2f5e' },
+                    }
+                }
+            }
+        }
+    </script>
+    <!-- KTUI JS from CDN -->
+    <script src="https://cdn.jsdelivr.net/npm/@keenthemes/ktui@latest/dist/ktui.min.js"></script>
+    <link rel="stylesheet" href="/css/styles.css">
 </head>
-<body class="theme-dark">
-<div id="login-page" class="page login-page">
-        <div class="login-container">
-            <div class="login-logo">
-                <img src="/img/logo.ico" alt="" class="logo-img">
-                <h1>CoraOS</h1>
-                <p>Server Management</p>
+<body class="dark bg-coal-950 text-gray-200 antialiased">
+
+    <!-- Login Page -->
+    <div id="login-page" class="min-h-screen flex items-center justify-center">
+        <div class="w-full max-w-sm p-8 bg-coal-900 border border-coal-800 rounded-xl">
+            <div class="text-center mb-8">
+                <img src="/img/logo.ico" alt="" class="w-16 h-16 mx-auto mb-4 rounded-xl">
+                <h1 class="text-xl font-semibold text-white">CoraOS</h1>
+                <p class="text-sm text-gray-400 mt-1">Server Management</p>
             </div>
-            <form id="login-form">
-                <div class="form-group">
-                    <label for="username">Username</label>
-                    <input type="text" id="username" name="username" required autocomplete="username">
+            <form id="login-form" class="space-y-4">
+                <div>
+                    <label class="block text-sm font-medium text-gray-300 mb-1.5">Username</label>
+                    <input type="text" id="username" name="username" required autocomplete="username"
+                        class="w-full px-3 py-2 bg-coal-950 border border-coal-700 rounded-lg text-sm text-white placeholder-gray-500 focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary">
                 </div>
-                <div class="form-group">
-                    <label for="password">Password</label>
-                    <input type="password" id="password" name="password" required autocomplete="current-password">
+                <div>
+                    <label class="block text-sm font-medium text-gray-300 mb-1.5">Password</label>
+                    <input type="password" id="password" name="password" required autocomplete="current-password"
+                        class="w-full px-3 py-2 bg-coal-950 border border-coal-700 rounded-lg text-sm text-white placeholder-gray-500 focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary">
                 </div>
-                <div id="login-error" class="error-message hidden"></div>
-                <button type="submit" class="btn btn-primary btn-full" id="login-btn">
+                <div id="login-error" class="hidden text-sm text-red-400 bg-red-500/10 border border-red-500/20 rounded-lg px-3 py-2"></div>
+                <button type="submit" id="login-btn"
+                    class="w-full py-2.5 bg-primary hover:bg-primary-600 text-white text-sm font-medium rounded-lg transition-colors">
                     <span class="btn-text">Sign in</span>
-                    <span class="btn-loading hidden"><span class="spinner"></span>Signing in...</span>
+                    <span class="btn-loading hidden"><svg class="animate-spin inline-block w-4 h-4 mr-2" viewBox="0 0 24 24" fill="none"><circle cx="12" cy="12" r="10" stroke="currentColor" stroke-width="3" class="opacity-25"/><path d="M4 12a8 8 0 018-8" stroke="currentColor" stroke-width="3" stroke-linecap="round" class="opacity-75"/></svg>Signing in...</span>
                 </button>
             </form>
         </div>
     </div>
-<div id="dashboard" class="dashboard hidden">
-        <aside class="sidebar">
-            <div class="sidebar-header">
-                <div class="sidebar-brand">
-                    <img src="/img/logo.ico" alt="" class="sidebar-logo-img">
-                    <span class="sidebar-logo-text">CoraOS</span>
+
+    <!-- Dashboard -->
+    <div id="dashboard" class="hidden h-screen flex">
+
+        <!-- Sidebar -->
+        <aside class="w-[220px] bg-coal-900 border-r border-coal-800 flex flex-col shrink-0">
+            <div class="p-4 border-b border-coal-800">
+                <div class="flex items-center gap-2.5">
+                    <img src="/img/logo.ico" alt="" class="w-7 h-7 rounded-md">
+                    <span class="text-[15px] font-semibold text-white">CoraOS</span>
                 </div>
             </div>
-            <nav class="sidebar-nav" id="sidebar-nav">
-                <div class="nav-section">Overview</div>
+            <nav class="flex-1 p-2 overflow-y-auto space-y-0.5" id="sidebar-nav">
+                <div class="px-3 pt-4 pb-1.5 text-[11px] font-semibold text-gray-500 uppercase tracking-wider">Overview</div>
                 <a class="nav-item active" data-page="overview"></a>
-                <div class="nav-section">Management</div>
+                <div class="px-3 pt-4 pb-1.5 text-[11px] font-semibold text-gray-500 uppercase tracking-wider">Management</div>
                 <a class="nav-item" data-page="services"></a>
                 <a class="nav-item" data-page="processes"></a>
                 <a class="nav-item" data-page="storage"></a>
                 <a class="nav-item" data-page="logs"></a>
                 <a class="nav-item" data-page="updates"></a>
                 <a class="nav-item" data-page="backups"></a>
-                <div class="nav-section">Administration</div>
+                <div class="px-3 pt-4 pb-1.5 text-[11px] font-semibold text-gray-500 uppercase tracking-wider">Administration</div>
                 <a class="nav-item" data-page="users"></a>
                 <a class="nav-item" data-page="config"></a>
                 <a class="nav-item" data-page="settings"></a>
             </nav>
-            <div class="sidebar-footer">
-                <div class="user-info">
-                    <div class="user-avatar" id="user-avatar">A</div>
-                    <div class="user-details">
-                        <div class="user-name" id="current-user">admin</div>
-                        <div class="user-role" id="current-role">admin</div>
+            <div class="p-3 border-t border-coal-800">
+                <div class="flex items-center gap-2.5 px-2 py-1.5 mb-2">
+                    <div class="w-7 h-7 rounded-full bg-primary flex items-center justify-center text-white text-xs font-semibold" id="user-avatar">A</div>
+                    <div class="flex-1 min-w-0">
+                        <div class="text-sm font-medium text-white truncate" id="current-user">admin</div>
+                        <div class="text-[11px] text-gray-500 uppercase" id="current-role">admin</div>
                     </div>
                 </div>
-                <button id="logout-btn" class="btn btn-outline btn-sm btn-full"></button>
+                <button id="logout-btn" class="w-full flex items-center justify-center gap-2 px-3 py-1.5 text-xs text-gray-400 hover:text-white border border-coal-700 hover:border-coal-600 rounded-lg transition-colors"></button>
             </div>
         </aside>
 
-        <main class="main-content">
-            <header class="topbar">
-                <button class="sidebar-toggle btn-icon" id="sidebar-toggle" aria-label="Menu"></button>
-                <div class="search-container">
-                    <input type="text" id="global-search" placeholder="Search..." class="search-input">
+        <!-- Main -->
+        <main class="flex-1 flex flex-col overflow-hidden">
+            <header class="h-[50px] flex items-center gap-3 px-5 border-b border-coal-800 shrink-0">
+                <button class="lg:hidden p-1 text-gray-400 hover:text-white" id="sidebar-toggle"></button>
+                <div class="flex-1 max-w-sm relative">
+                    <input type="text" id="global-search" placeholder="Search..."
+                        class="w-full h-8 pl-8 pr-3 bg-coal-900 border border-coal-700 rounded-lg text-sm text-white placeholder-gray-500 focus:outline-none focus:border-primary">
                 </div>
-                <div class="topbar-actions">
-                    <button class="btn-icon" id="theme-toggle" title="Toggle theme"></button>
-                    <div class="notifications">
-                        <button class="btn-icon" id="notifications-btn" title="Notifications"></button>
-                        <span class="notification-badge hidden" id="notification-badge">0</span>
+                <div class="ml-auto flex items-center gap-1">
+                    <button class="p-2 text-gray-400 hover:text-white rounded-lg hover:bg-coal-800 transition-colors" id="theme-toggle"></button>
+                    <div class="relative" id="notifications-container">
+                        <button class="p-2 text-gray-400 hover:text-white rounded-lg hover:bg-coal-800 transition-colors" id="notifications-btn"></button>
+                        <span class="hidden absolute top-1 right-1 w-4 h-4 bg-red-500 text-white text-[10px] font-bold rounded-full flex items-center justify-center" id="notification-badge">0</span>
                     </div>
                 </div>
             </header>
 
-            <div class="content-area">
-<section id="page-overview" class="page-section active">
-                    <div class="page-header">
-                        <div>
-                            <h1 class="page-title">Dashboard</h1>
-                            <div class="page-subtitle">Real-time system overview</div>
+            <div class="flex-1 overflow-y-auto p-5" id="content-area">
+
+                <!-- Overview -->
+                <section id="page-overview" class="page-section active">
+                    <div class="mb-5"><h1 class="text-lg font-semibold text-white">Dashboard</h1><p class="text-sm text-gray-400">Real-time system overview</p></div>
+                    <div class="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-3 mb-4">
+                        <div class="bg-coal-900 border border-coal-800 rounded-lg p-4">
+                            <div class="text-[11px] font-medium text-gray-500 uppercase tracking-wide mb-2 flex items-center gap-1.5" id="cpu-title">CPU</div>
+                            <div class="text-2xl font-semibold text-white mb-2 tabular-nums" id="cpu-usage">—</div>
+                            <div class="h-1 bg-coal-800 rounded-full overflow-hidden mb-2"><div class="h-full bg-primary rounded-full transition-all duration-500" id="cpu-bar" style="width:0%"></div></div>
+                            <div class="text-xs text-gray-500 tabular-nums" id="cpu-detail">Loading...</div>
+                        </div>
+                        <div class="bg-coal-900 border border-coal-800 rounded-lg p-4">
+                            <div class="text-[11px] font-medium text-gray-500 uppercase tracking-wide mb-2 flex items-center gap-1.5" id="mem-title">Memory</div>
+                            <div class="text-2xl font-semibold text-white mb-2 tabular-nums" id="mem-usage">—</div>
+                            <div class="h-1 bg-coal-800 rounded-full overflow-hidden mb-2"><div class="h-full bg-primary rounded-full transition-all duration-500" id="mem-bar" style="width:0%"></div></div>
+                            <div class="text-xs text-gray-500 tabular-nums" id="mem-detail">Loading...</div>
+                        </div>
+                        <div class="bg-coal-900 border border-coal-800 rounded-lg p-4">
+                            <div class="text-[11px] font-medium text-gray-500 uppercase tracking-wide mb-2 flex items-center gap-1.5" id="disk-title">Disk</div>
+                            <div class="text-2xl font-semibold text-white mb-2 tabular-nums" id="disk-usage">—</div>
+                            <div class="h-1 bg-coal-800 rounded-full overflow-hidden mb-2"><div class="h-full bg-primary rounded-full transition-all duration-500" id="disk-bar" style="width:0%"></div></div>
+                            <div class="text-xs text-gray-500 tabular-nums" id="disk-detail">Loading...</div>
+                        </div>
+                        <div class="bg-coal-900 border border-coal-800 rounded-lg p-4">
+                            <div class="text-[11px] font-medium text-gray-500 uppercase tracking-wide mb-2 flex items-center gap-1.5" id="net-title">Network</div>
+                            <div class="text-2xl font-semibold text-white mb-2 tabular-nums" id="net-usage">—</div>
+                            <div class="text-xs text-gray-500 tabular-nums" id="net-detail">Loading...</div>
                         </div>
                     </div>
-                    <div class="metrics-grid">
-                        <div class="metric-card">
-                            <div class="metric-header">
-                                <div class="metric-title" id="cpu-title">CPU</div>
-                            </div>
-                            <div class="metric-value" id="cpu-usage">—</div>
-                            <div class="metric-bar"><div class="metric-bar-fill" id="cpu-bar"></div></div>
-                            <div class="metric-detail" id="cpu-detail">Loading...</div>
-                        </div>
-                        <div class="metric-card">
-                            <div class="metric-header">
-                                <div class="metric-title" id="mem-title">Memory</div>
-                            </div>
-                            <div class="metric-value" id="mem-usage">—</div>
-                            <div class="metric-bar"><div class="metric-bar-fill" id="mem-bar"></div></div>
-                            <div class="metric-detail" id="mem-detail">Loading...</div>
-                        </div>
-                        <div class="metric-card">
-                            <div class="metric-header">
-                                <div class="metric-title" id="disk-title">Disk</div>
-                            </div>
-                            <div class="metric-value" id="disk-usage">—</div>
-                            <div class="metric-bar"><div class="metric-bar-fill" id="disk-bar"></div></div>
-                            <div class="metric-detail" id="disk-detail">Loading...</div>
-                        </div>
-                        <div class="metric-card">
-                            <div class="metric-header">
-                                <div class="metric-title" id="net-title">Network</div>
-                            </div>
-                            <div class="metric-value" id="net-usage">—</div>
-                            <div class="metric-detail" id="net-detail">Loading...</div>
-                        </div>
-                    </div>
-                    <div class="info-grid">
-                        <div class="info-card">
-                            <div class="info-card-header" id="sysinfo-title">System Information</div>
-                            <div class="info-row"><span class="label">Hostname</span><span class="value" id="sys-hostname">—</span></div>
-                            <div class="info-row"><span class="label">Operating System</span><span class="value" id="sys-os">—</span></div>
-                            <div class="info-row"><span class="label">Kernel</span><span class="value" id="sys-kernel">—</span></div>
-                            <div class="info-row"><span class="label">Uptime</span><span class="value" id="sys-uptime">—</span></div>
-                            <div class="info-row"><span class="label">Load Average</span><span class="value" id="sys-load">—</span></div>
-                            <div class="info-row"><span class="label">Processor</span><span class="value" id="sys-cpu-model">—</span></div>
+                    <div class="bg-coal-900 border border-coal-800 rounded-lg p-4">
+                        <div class="text-sm font-semibold text-white mb-3 pb-2.5 border-b border-coal-800 flex items-center gap-2" id="sysinfo-title">System Information</div>
+                        <div class="space-y-0" id="sysinfo-rows">
+                            <div class="flex justify-between py-2 border-b border-coal-800 text-sm"><span class="text-gray-400">Hostname</span><span class="text-white font-medium tabular-nums" id="sys-hostname">—</span></div>
+                            <div class="flex justify-between py-2 border-b border-coal-800 text-sm"><span class="text-gray-400">Operating System</span><span class="text-white font-medium" id="sys-os">—</span></div>
+                            <div class="flex justify-between py-2 border-b border-coal-800 text-sm"><span class="text-gray-400">Kernel</span><span class="text-white font-medium" id="sys-kernel">—</span></div>
+                            <div class="flex justify-between py-2 border-b border-coal-800 text-sm"><span class="text-gray-400">Uptime</span><span class="text-white font-medium tabular-nums" id="sys-uptime">—</span></div>
+                            <div class="flex justify-between py-2 border-b border-coal-800 text-sm"><span class="text-gray-400">Load Average</span><span class="text-white font-medium tabular-nums" id="sys-load">—</span></div>
+                            <div class="flex justify-between py-2 text-sm"><span class="text-gray-400">Processor</span><span class="text-white font-medium" id="sys-cpu-model">—</span></div>
                         </div>
                     </div>
                 </section>
-<section id="page-services" class="page-section">
-                    <div class="page-header">
-                        <div>
-                            <h1 class="page-title">Services</h1>
-                            <div class="page-subtitle">Manage systemd services</div>
-                        </div>
+
+                <!-- Services -->
+                <section id="page-services" class="page-section hidden">
+                    <div class="mb-5"><h1 class="text-lg font-semibold text-white">Services</h1><p class="text-sm text-gray-400">Manage systemd services</p></div>
+                    <div class="flex gap-2 mb-3">
+                        <input type="text" id="service-search" placeholder="Filter services..." class="h-8 px-3 bg-coal-900 border border-coal-700 rounded-lg text-sm text-white placeholder-gray-500 focus:outline-none focus:border-primary w-64">
+                        <button class="h-8 px-3 text-xs font-medium text-gray-300 border border-coal-700 rounded-lg hover:bg-coal-800 transition-colors flex items-center gap-1.5" id="services-refresh"></button>
                     </div>
-                    <div class="toolbar">
-                        <input type="text" id="service-search" placeholder="Filter services..." class="search-input">
-                        <button class="btn btn-outline btn-sm" id="services-refresh"></button>
-                    </div>
-                    <div class="table-container">
-                        <div class="table-scroll">
-                            <table class="data-table">
-                                <thead><tr><th>Service</th><th>Status</th><th>State</th><th>Description</th><th>Actions</th></tr></thead>
-                                <tbody id="services-tbody"></tbody>
-                            </table>
-                        </div>
-                    </div>
+                    <div class="bg-coal-900 border border-coal-800 rounded-lg overflow-hidden"><div class="overflow-x-auto max-h-[calc(100vh-200px)]"><table class="w-full text-sm"><thead><tr class="border-b border-coal-800"><th class="px-4 py-2.5 text-left text-[11px] font-semibold text-gray-500 uppercase">Service</th><th class="px-4 py-2.5 text-left text-[11px] font-semibold text-gray-500 uppercase">Status</th><th class="px-4 py-2.5 text-left text-[11px] font-semibold text-gray-500 uppercase">State</th><th class="px-4 py-2.5 text-left text-[11px] font-semibold text-gray-500 uppercase">Description</th><th class="px-4 py-2.5 text-left text-[11px] font-semibold text-gray-500 uppercase">Actions</th></tr></thead><tbody id="services-tbody"></tbody></table></div></div>
                 </section>
-<section id="page-processes" class="page-section">
-                    <div class="page-header">
-                        <div>
-                            <h1 class="page-title">Processes</h1>
-                            <div class="page-subtitle">Top processes by CPU usage</div>
-                        </div>
-                    </div>
-                    <div class="table-container">
-                        <div class="table-scroll">
-                            <table class="data-table">
-                                <thead><tr><th>PID</th><th>Name</th><th>CPU %</th><th>Memory</th><th>Status</th></tr></thead>
-                                <tbody id="processes-tbody"></tbody>
-                            </table>
-                        </div>
-                    </div>
+
+                <!-- Processes -->
+                <section id="page-processes" class="page-section hidden">
+                    <div class="mb-5"><h1 class="text-lg font-semibold text-white">Processes</h1><p class="text-sm text-gray-400">Top processes by CPU usage</p></div>
+                    <div class="bg-coal-900 border border-coal-800 rounded-lg overflow-hidden"><div class="overflow-x-auto max-h-[calc(100vh-180px)]"><table class="w-full text-sm"><thead><tr class="border-b border-coal-800"><th class="px-4 py-2.5 text-left text-[11px] font-semibold text-gray-500 uppercase">PID</th><th class="px-4 py-2.5 text-left text-[11px] font-semibold text-gray-500 uppercase">Name</th><th class="px-4 py-2.5 text-left text-[11px] font-semibold text-gray-500 uppercase">CPU %</th><th class="px-4 py-2.5 text-left text-[11px] font-semibold text-gray-500 uppercase">Memory</th><th class="px-4 py-2.5 text-left text-[11px] font-semibold text-gray-500 uppercase">Status</th></tr></thead><tbody id="processes-tbody"></tbody></table></div></div>
                 </section>
-<section id="page-storage" class="page-section">
-                    <div class="page-header">
-                        <div>
-                            <h1 class="page-title">Storage</h1>
-                            <div class="page-subtitle">FTP server, RAID arrays, and mount points</div>
-                        </div>
+
+                <!-- Storage -->
+                <section id="page-storage" class="page-section hidden">
+                    <div class="mb-5"><h1 class="text-lg font-semibold text-white">Storage</h1><p class="text-sm text-gray-400">FTP server, RAID arrays, and mount points</p></div>
+                    <div class="bg-coal-900 border border-coal-800 rounded-lg p-4 mb-3"><div class="text-sm font-semibold text-white mb-3 flex items-center gap-2" id="ftp-header">FTP Server</div><div id="ftp-content"><p class="text-sm text-gray-500">Loading...</p></div></div>
+                    <div class="bg-coal-900 border border-coal-800 rounded-lg p-4 mb-3"><div class="text-sm font-semibold text-white mb-3 flex items-center gap-2" id="raid-header">RAID Arrays</div><div class="mb-3"><button class="h-8 px-3 text-xs font-medium bg-primary hover:bg-primary-600 text-white rounded-lg transition-colors flex items-center gap-1.5" id="create-raid-btn"></button></div><div id="raid-content"><p class="text-sm text-gray-500">Loading...</p></div></div>
+                    <div class="bg-coal-900 border border-coal-800 rounded-lg p-4"><div class="text-sm font-semibold text-white mb-3 flex items-center gap-2" id="mounts-header">Mount Points</div><div class="mb-3"><button class="h-8 px-3 text-xs font-medium bg-primary hover:bg-primary-600 text-white rounded-lg transition-colors flex items-center gap-1.5" id="mount-device-btn"></button></div><div class="overflow-x-auto"><table class="w-full text-sm"><thead><tr class="border-b border-coal-800"><th class="px-3 py-2 text-left text-[11px] font-semibold text-gray-500 uppercase">Device</th><th class="px-3 py-2 text-left text-[11px] font-semibold text-gray-500 uppercase">Mount</th><th class="px-3 py-2 text-left text-[11px] font-semibold text-gray-500 uppercase">FS</th><th class="px-3 py-2 text-left text-[11px] font-semibold text-gray-500 uppercase">Size</th><th class="px-3 py-2 text-left text-[11px] font-semibold text-gray-500 uppercase">Used</th><th class="px-3 py-2 text-left text-[11px] font-semibold text-gray-500 uppercase">Avail</th><th class="px-3 py-2 text-left text-[11px] font-semibold text-gray-500 uppercase">Use%</th></tr></thead><tbody id="mounts-tbody"></tbody></table></div></div>
+                </section>
+
+                <!-- Logs -->
+                <section id="page-logs" class="page-section hidden">
+                    <div class="mb-5"><h1 class="text-lg font-semibold text-white">Logs</h1><p class="text-sm text-gray-400">System journal</p></div>
+                    <div class="flex flex-wrap gap-2 mb-3">
+                        <select id="log-unit" class="h-8 px-3 bg-coal-900 border border-coal-700 rounded-lg text-sm text-white focus:outline-none focus:border-primary"><option value="">All units</option></select>
+                        <select id="log-priority" class="h-8 px-3 bg-coal-900 border border-coal-700 rounded-lg text-sm text-white focus:outline-none focus:border-primary"><option value="">All priorities</option><option value="emerg">Emergency</option><option value="alert">Alert</option><option value="crit">Critical</option><option value="err">Error</option><option value="warning">Warning</option><option value="notice">Notice</option><option value="info">Info</option><option value="debug">Debug</option></select>
+                        <input type="text" id="log-search" placeholder="Search..." class="h-8 px-3 bg-coal-900 border border-coal-700 rounded-lg text-sm text-white placeholder-gray-500 focus:outline-none focus:border-primary w-48">
+                        <button class="h-8 px-3 text-xs font-medium bg-primary hover:bg-primary-600 text-white rounded-lg transition-colors flex items-center gap-1.5" id="refresh-logs-btn"></button>
                     </div>
-<div class="info-card" style="margin-bottom:16px;">
-                        <div class="info-card-header" id="ftp-header">FTP Server (vsftpd)</div>
-                        <div id="ftp-content">
-                            <div class="loading-state">Loading FTP status...</div>
-                        </div>
+                    <div class="bg-coal-900 border border-coal-800 rounded-lg p-3 font-mono text-xs max-h-[calc(100vh-220px)] overflow-y-auto" id="log-viewer"></div>
+                </section>
+
+                <!-- Updates -->
+                <section id="page-updates" class="page-section hidden">
+                    <div class="mb-5"><h1 class="text-lg font-semibold text-white">System Updates</h1><p class="text-sm text-gray-400">Available package updates</p></div>
+                    <div class="flex gap-2 mb-3">
+                        <button class="h-8 px-3 text-xs font-medium bg-primary hover:bg-primary-600 text-white rounded-lg transition-colors flex items-center gap-1.5" id="check-updates-btn"></button>
+                        <button class="h-8 px-3 text-xs font-medium bg-green-600 hover:bg-green-700 text-white rounded-lg transition-colors flex items-center gap-1.5 disabled:opacity-50 disabled:cursor-not-allowed" id="apply-updates-btn" disabled></button>
                     </div>
-<div class="info-card" style="margin-bottom:16px;">
-                        <div class="info-card-header" id="raid-header">RAID Arrays</div>
-                        <div class="toolbar" style="margin-top:12px;">
-                            <button class="btn btn-primary btn-sm" id="create-raid-btn"></button>
-                        </div>
-                        <div id="raid-content">
-                            <div class="loading-state">Loading RAID status...</div>
-                        </div>
-                    </div>
-<div class="info-card">
-                        <div class="info-card-header" id="mounts-header">Mount Points</div>
-                        <div class="toolbar" style="margin-top:12px;">
-                            <button class="btn btn-primary btn-sm" id="mount-device-btn"></button>
-                        </div>
-                        <div class="table-container" style="margin-top:12px;">
-                            <div class="table-scroll">
-                                <table class="data-table">
-                                    <thead><tr><th>Device</th><th>Mount</th><th>FS</th><th>Size</th><th>Used</th><th>Avail</th><th>Use%</th></tr></thead>
-                                    <tbody id="mounts-tbody"></tbody>
-                                </table>
+                    <div class="bg-coal-900 border border-coal-800 rounded-lg overflow-hidden"><div class="overflow-x-auto"><table class="w-full text-sm"><thead><tr class="border-b border-coal-800"><th class="px-4 py-2.5 text-left text-[11px] font-semibold text-gray-500 uppercase">Package</th><th class="px-4 py-2.5 text-left text-[11px] font-semibold text-gray-500 uppercase">Current</th><th class="px-4 py-2.5 text-left text-[11px] font-semibold text-gray-500 uppercase">New</th><th class="px-4 py-2.5 text-left text-[11px] font-semibold text-gray-500 uppercase">Repository</th></tr></thead><tbody id="updates-tbody"></tbody></table></div></div>
+                    <div id="updates-status" class="mt-3 text-sm"></div>
+                </section>
+
+                <!-- Backups -->
+                <section id="page-backups" class="page-section hidden">
+                    <div class="mb-5"><h1 class="text-lg font-semibold text-white">Backups</h1><p class="text-sm text-gray-400">Manage system backups</p></div>
+                    <div class="mb-3"><button class="h-8 px-3 text-xs font-medium bg-primary hover:bg-primary-600 text-white rounded-lg transition-colors flex items-center gap-1.5" id="create-backup-btn"></button></div>
+                    <div class="bg-coal-900 border border-coal-800 rounded-lg overflow-hidden"><div class="overflow-x-auto"><table class="w-full text-sm"><thead><tr class="border-b border-coal-800"><th class="px-4 py-2.5 text-left text-[11px] font-semibold text-gray-500 uppercase">Name</th><th class="px-4 py-2.5 text-left text-[11px] font-semibold text-gray-500 uppercase">Size</th><th class="px-4 py-2.5 text-left text-[11px] font-semibold text-gray-500 uppercase">Status</th><th class="px-4 py-2.5 text-left text-[11px] font-semibold text-gray-500 uppercase">Created</th><th class="px-4 py-2.5 text-left text-[11px] font-semibold text-gray-500 uppercase">Actions</th></tr></thead><tbody id="backups-tbody"></tbody></table></div></div>
+                </section>
+
+                <!-- Users -->
+                <section id="page-users" class="page-section hidden">
+                    <div class="mb-5"><h1 class="text-lg font-semibold text-white">Users</h1><p class="text-sm text-gray-400">Manage user accounts</p></div>
+                    <div class="mb-3"><button class="h-8 px-3 text-xs font-medium bg-primary hover:bg-primary-600 text-white rounded-lg transition-colors flex items-center gap-1.5" id="create-user-btn"></button></div>
+                    <div class="bg-coal-900 border border-coal-800 rounded-lg overflow-hidden"><div class="overflow-x-auto"><table class="w-full text-sm"><thead><tr class="border-b border-coal-800"><th class="px-4 py-2.5 text-left text-[11px] font-semibold text-gray-500 uppercase">Username</th><th class="px-4 py-2.5 text-left text-[11px] font-semibold text-gray-500 uppercase">Role</th><th class="px-4 py-2.5 text-left text-[11px] font-semibold text-gray-500 uppercase">Status</th><th class="px-4 py-2.5 text-left text-[11px] font-semibold text-gray-500 uppercase">Last Login</th><th class="px-4 py-2.5 text-left text-[11px] font-semibold text-gray-500 uppercase">Actions</th></tr></thead><tbody id="users-tbody"></tbody></table></div></div>
+                </section>
+
+                <!-- Configuration -->
+                <section id="page-config" class="page-section hidden">
+                    <div class="mb-5"><h1 class="text-lg font-semibold text-white">Configuration</h1><p class="text-sm text-gray-400">Server settings</p></div>
+                    <div class="mb-3"><button class="h-8 px-3 text-xs font-medium bg-primary hover:bg-primary-600 text-white rounded-lg transition-colors flex items-center gap-1.5" id="add-config-btn"></button></div>
+                    <div class="bg-coal-900 border border-coal-800 rounded-lg overflow-hidden"><div class="overflow-x-auto"><table class="w-full text-sm"><thead><tr class="border-b border-coal-800"><th class="px-4 py-2.5 text-left text-[11px] font-semibold text-gray-500 uppercase">Key</th><th class="px-4 py-2.5 text-left text-[11px] font-semibold text-gray-500 uppercase">Value</th><th class="px-4 py-2.5 text-left text-[11px] font-semibold text-gray-500 uppercase">Description</th><th class="px-4 py-2.5 text-left text-[11px] font-semibold text-gray-500 uppercase">Updated</th><th class="px-4 py-2.5 text-left text-[11px] font-semibold text-gray-500 uppercase">Actions</th></tr></thead><tbody id="config-tbody"></tbody></table></div></div>
+                </section>
+
+                <!-- Settings -->
+                <section id="page-settings" class="page-section hidden">
+                    <div class="mb-5"><h1 class="text-lg font-semibold text-white">Settings</h1><p class="text-sm text-gray-400">Personal preferences</p></div>
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
+                        <div class="bg-coal-900 border border-coal-800 rounded-lg p-4">
+                            <h3 class="text-sm font-semibold text-white mb-3">Appearance</h3>
+                            <div class="flex justify-between items-center py-2">
+                                <label class="text-sm text-gray-400">Theme</label>
+                                <select id="theme-select" class="h-8 px-3 bg-coal-950 border border-coal-700 rounded-lg text-sm text-white focus:outline-none focus:border-primary"><option value="dark">Dark</option><option value="light">Light</option></select>
                             </div>
                         </div>
-                    </div>
-                </section>
-<section id="page-logs" class="page-section">
-                    <div class="page-header">
-                        <div>
-                            <h1 class="page-title">Logs</h1>
-                            <div class="page-subtitle">System journal</div>
-                        </div>
-                    </div>
-                    <div class="toolbar">
-                        <select id="log-unit" class="select-input"><option value="">All units</option></select>
-                        <select id="log-priority" class="select-input">
-                            <option value="">All priorities</option>
-                            <option value="emerg">Emergency</option>
-                            <option value="alert">Alert</option>
-                            <option value="crit">Critical</option>
-                            <option value="err">Error</option>
-                            <option value="warning">Warning</option>
-                            <option value="notice">Notice</option>
-                            <option value="info">Info</option>
-                            <option value="debug">Debug</option>
-                        </select>
-                        <input type="text" id="log-search" placeholder="Search logs..." class="search-input">
-                        <button class="btn btn-primary btn-sm" id="refresh-logs-btn"></button>
-                    </div>
-                    <div class="log-viewer" id="log-viewer"></div>
-                </section>
-<section id="page-updates" class="page-section">
-                    <div class="page-header">
-                        <div>
-                            <h1 class="page-title">System Updates</h1>
-                            <div class="page-subtitle">Available package updates</div>
-                        </div>
-                    </div>
-                    <div class="toolbar">
-                        <button class="btn btn-primary btn-sm" id="check-updates-btn"></button>
-                        <button class="btn btn-success btn-sm" id="apply-updates-btn" disabled></button>
-                    </div>
-                    <div class="table-container">
-                        <div class="table-scroll">
-                            <table class="data-table">
-                                <thead><tr><th>Package</th><th>Current</th><th>New</th><th>Repository</th></tr></thead>
-                                <tbody id="updates-tbody"></tbody>
-                            </table>
-                        </div>
-                    </div>
-                    <div id="updates-status" class="status-message"></div>
-                </section>
-<section id="page-backups" class="page-section">
-                    <div class="page-header">
-                        <div>
-                            <h1 class="page-title">Backups</h1>
-                            <div class="page-subtitle">Manage system backups</div>
-                        </div>
-                    </div>
-                    <div class="toolbar">
-                        <button class="btn btn-primary btn-sm" id="create-backup-btn"></button>
-                    </div>
-                    <div class="table-container">
-                        <div class="table-scroll">
-                            <table class="data-table">
-                                <thead><tr><th>Name</th><th>Size</th><th>Status</th><th>Created</th><th>Actions</th></tr></thead>
-                                <tbody id="backups-tbody"></tbody>
-                            </table>
-                        </div>
-                    </div>
-                </section>
-<section id="page-users" class="page-section">
-                    <div class="page-header">
-                        <div>
-                            <h1 class="page-title">Users</h1>
-                            <div class="page-subtitle">Manage user accounts</div>
-                        </div>
-                    </div>
-                    <div class="toolbar">
-                        <button class="btn btn-primary btn-sm" id="create-user-btn"></button>
-                    </div>
-                    <div class="table-container">
-                        <div class="table-scroll">
-                            <table class="data-table">
-                                <thead><tr><th>Username</th><th>Role</th><th>Status</th><th>Last Login</th><th>Actions</th></tr></thead>
-                                <tbody id="users-tbody"></tbody>
-                            </table>
-                        </div>
-                    </div>
-                </section>
-<section id="page-config" class="page-section">
-                    <div class="page-header">
-                        <div>
-                            <h1 class="page-title">Configuration</h1>
-                            <div class="page-subtitle">Server settings</div>
-                        </div>
-                    </div>
-                    <div class="toolbar">
-                        <button class="btn btn-primary btn-sm" id="add-config-btn"></button>
-                    </div>
-                    <div class="table-container">
-                        <div class="table-scroll">
-                            <table class="data-table">
-                                <thead><tr><th>Key</th><th>Value</th><th>Description</th><th>Updated</th><th>Actions</th></tr></thead>
-                                <tbody id="config-tbody"></tbody>
-                            </table>
-                        </div>
-                    </div>
-                </section>
-<section id="page-settings" class="page-section">
-                    <div class="page-header">
-                        <div>
-                            <h1 class="page-title">Settings</h1>
-                            <div class="page-subtitle">Personal preferences</div>
-                        </div>
-                    </div>
-                    <div class="settings-grid">
-                        <div class="settings-card">
-                            <h3>Appearance</h3>
-                            <div class="setting-row">
-                                <label>Theme</label>
-                                <select id="theme-select" class="select-input" style="width:auto;min-width:140px;">
-                                    <option value="dark">Dark</option>
-                                    <option value="light">Light</option>
-                                </select>
-                            </div>
-                        </div>
-                        <div class="settings-card">
-                            <h3>Account</h3>
-                            <div class="setting-row">
-                                <label>Change Password</label>
-                                <button class="btn btn-outline btn-sm" id="change-password-btn">Change</button>
+                        <div class="bg-coal-900 border border-coal-800 rounded-lg p-4">
+                            <h3 class="text-sm font-semibold text-white mb-3">Account</h3>
+                            <div class="flex justify-between items-center py-2">
+                                <label class="text-sm text-gray-400">Change Password</label>
+                                <button class="h-8 px-3 text-xs font-medium text-gray-300 border border-coal-700 rounded-lg hover:bg-coal-800 transition-colors" id="change-password-btn">Change</button>
                             </div>
                         </div>
                     </div>
@@ -342,18 +245,20 @@
         </main>
     </div>
 
-    <div id="modal-overlay" class="modal-overlay hidden">
-        <div class="modal" id="modal">
-            <div class="modal-header">
-                <h3 id="modal-title"></h3>
-                <button class="modal-close" id="modal-close" aria-label="Close"></button>
+    <!-- Modal -->
+    <div id="modal-overlay" class="hidden fixed inset-0 z-50 bg-black/50 flex items-center justify-center">
+        <div class="bg-coal-900 border border-coal-800 rounded-xl w-[90%] max-w-md max-h-[85vh] flex flex-col">
+            <div class="flex justify-between items-center px-5 py-3.5 border-b border-coal-800">
+                <h3 class="text-sm font-semibold text-white" id="modal-title"></h3>
+                <button class="p-1 text-gray-400 hover:text-white rounded" id="modal-close"></button>
             </div>
-            <div class="modal-body" id="modal-body"></div>
-            <div class="modal-footer" id="modal-footer"></div>
+            <div class="px-5 py-4 overflow-y-auto" id="modal-body"></div>
+            <div class="px-5 py-3 border-t border-coal-800 flex justify-end gap-2" id="modal-footer"></div>
         </div>
     </div>
 
-    <div id="toast-container" class="toast-container"></div>
+    <!-- Toasts -->
+    <div id="toast-container" class="fixed top-4 right-4 z-[100] flex flex-col gap-2"></div>
 
     <script src="/js/icons.js"></script>
     <script src="/js/api.js"></script>
