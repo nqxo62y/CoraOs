@@ -49,7 +49,13 @@ const App = {
         set('sidebar-toggle', Icons.render('menu'));
         set('theme-toggle', Icons.render('moon'));
         set('notifications-btn', Icons.render('bell'));
-        document.querySelector('.search-container').insertAdjacentHTML('afterbegin', Icons.render('search'));
+        // Search icon (insert before the input)
+        const searchInput = document.getElementById('global-search');
+        if (searchInput && searchInput.parentElement) {
+            searchInput.parentElement.insertAdjacentHTML('afterbegin',
+                `<span class="absolute left-2.5 top-1/2 -translate-y-1/2 text-gray-500 pointer-events-none">${Icons.render('search')}</span>`
+            );
+        }
 
         // Logout button
         set('logout-btn', `${Icons.render('logout', 'icon-sm')}<span>Sign out</span>`);
